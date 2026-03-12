@@ -12,7 +12,6 @@
 import {
   BedrockRuntimeClient,
   InvokeModelCommand,
-  InvokeModelWithResponseStreamCommand,
 } from '@aws-sdk/client-bedrock-runtime';
 
 import { config } from '../config/index.js';
@@ -134,55 +133,6 @@ export class NovaLLM implements LLMProvider {
     }
 
     return parts.map((p) => p.text).join('');
-  }
-
-  /**
-   * Stream text chunks from Amazon Nova via Bedrock.
-   */
-  async *generateStream(
-    systemPrompt: string,
-    userPrompt: string,
-  ): AsyncIterable<string> {
-    const body: NovaRequest = {
-      system: [{ text: systemPrompt }],
-      messages: [
-        {
-          role: 'user',
-          content: [{ text: userPrompt }],
-        },
-      ],
-      inferenceConfig: {
-        maxTokens: 4096,
-        temperature: 0.3,
-        topP: 0.9,
-      },
-    };
-
-    const command = new InvokeModelWithResponseStreamCommand({
-      modelId: this.modelId,
-      contentType: 'application/json',
-      accept: 'application/json',
-      body: JSON.stringify(body),
-    });
-
-    const response = await this.client.send(command);
-
-    if (response.body) {
-      for await (const event of response.body) {
-        if (event.chunk?.bytes) {
-          const parsed = JSON.parse(
-            new TextDecoder().decode(event.chunk.bytes),
-          ) as Record<string, unknown>;
-          // Nova streaming returns contentBlockDelta events with delta.text
-          const delta = parsed?.contentBlockDelta as
-            | { delta?: { text?: string } }
-            | undefined;
-          if (delta?.delta?.text) {
-            yield delta.delta.text;
-          }
-        }
-      }
-    }
   }
 
   /**

@@ -8,7 +8,7 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import type { SahayakResponse, SupportedState } from '@nyayasetu/shared-types';
-import { processQuery, processQueryStream } from '../services/query-pipeline.js';
+import { processQuery } from '../services/query-pipeline.js';
 
 // ---------------------------------------------------------------------------
 // Request validation schema
@@ -64,59 +64,6 @@ export const sahayakRoutes: FastifyPluginAsync = async (
 
       const statusCode = response.type === 'success' ? 200 : 422;
       return reply.status(statusCode).send(response);
-    },
-  );
-
-  /**
-   * POST /query/stream — SSE streaming response
-   *
-   * Events:
-   *   event: meta    — { citations, certaintyScore, certaintyLevel, jurisdiction }
-   *   event: chunk   — raw text token
-   *   event: done    — stream finished
-   *   event: error   — RefusalResponse JSON
-   */
-  fastify.post<{ Body: QueryRequest }>(
-    '/query/stream',
-    async (request, reply) => {
-      const parseResult = QueryRequestSchema.safeParse(request.body);
-
-      if (!parseResult.success) {
-        return reply.status(400).send({
-          type: 'refusal',
-          reason: 'out-of-scope',
-          message: `Invalid request: ${parseResult.error.errors.map((e) => e.message).join('; ')}`,
-          suggestHumanLawyer: false,
-        });
-      }
-
-      const { text, state, language } = parseResult.data;
-
-      // Set SSE headers
-      reply.raw.writeHead(200, {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-        'X-Accel-Buffering': 'no',
-      });
-
-      try {
-        for await (const event of processQueryStream({
-          text,
-          state: state as SupportedState | undefined,
-          language,
-        })) {
-          const payload = typeof event.data === 'string'
-            ? event.data
-            : JSON.stringify(event.data);
-          reply.raw.write(`event: ${event.type}\ndata: ${payload}\n\n`);
-        }
-      } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        reply.raw.write(`event: error\ndata: ${JSON.stringify({ message })}\n\n`);
-      }
-
-      reply.raw.end();
     },
   );
 };

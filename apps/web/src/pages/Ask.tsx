@@ -5,10 +5,11 @@ import {
   useCallback,
   type KeyboardEvent,
 } from 'react';
-import type { SahayakResponse, Citation, Jurisdiction, CertaintyLevel } from '@nyayasetu/shared-types';
-import { queryLawStream } from '@/lib/api';
+import type { SahayakResponse } from '@nyayasetu/shared-types';
+import { queryLaw } from '@/lib/api';
 import LegalResponseCard from '@/components/LegalResponse';
 import RefusalCard from '@/components/RefusalCard';
+import AIProgressLoader from '@/components/AIProgressLoader';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -16,19 +17,10 @@ import RefusalCard from '@/components/RefusalCard';
 
 interface ChatMessage {
   id: string;
-  type: 'user' | 'response' | 'error' | 'streaming';
+  type: 'user' | 'response' | 'error';
   text?: string;
   jurisdictionLabel?: string;
   response?: SahayakResponse;
-  /** Partial text being streamed in. */
-  streamingText?: string;
-  /** Metadata received before text starts streaming. */
-  streamMeta?: {
-    citations: Citation[];
-    certaintyScore: number;
-    certaintyLevel: CertaintyLevel;
-    jurisdiction: Jurisdiction;
-  };
   errorText?: string;
   timestamp: number;
 }
@@ -152,40 +144,6 @@ function ResponseBubble({ msg }: { msg: ChatMessage }) {
   );
 }
 
-function StreamingBubble({ msg }: { msg: ChatMessage }) {
-  const text = msg.streamingText ?? '';
-  return (
-    <div className="flex items-start gap-3">
-      <SahayakAvatar size={32} />
-      <div className="min-w-0 flex-1 space-y-1">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold text-neon-cyan">Sahayak</span>
-          <span className="text-[10px] text-gray-600">{formatTime(msg.timestamp)}</span>
-          <span className="ml-1 inline-flex items-center gap-1 text-[10px] text-neon-cyan/60">
-            <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-neon-cyan" />
-            Generating…
-          </span>
-        </div>
-        {text ? (
-          <div
-            className="glass-card"
-            style={{ minHeight: 48 }}
-          >
-            <p className="whitespace-pre-wrap text-sm leading-[1.85] text-gray-300">
-              {text}
-              <span className="inline-block h-4 w-0.5 animate-pulse bg-neon-cyan ml-0.5" />
-            </p>
-          </div>
-        ) : (
-          <div className="glass-card flex items-center gap-2" style={{ minHeight: 48 }}>
-            <span className="text-xs text-gray-500">Searching legal sources…</span>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
 function ErrorBubble({ msg }: { msg: ChatMessage }) {
   return (
     <div className="flex items-start gap-3">
@@ -291,99 +249,33 @@ export default function Ask() {
       timestamp: Date.now(),
     };
 
-    const streamId = uid();
-
     setMessages((prev) => [...prev, userMsg]);
     resetTextarea();
     setLoading(true);
 
-    // Add a streaming placeholder message
-    const streamMsg: ChatMessage = {
-      id: streamId,
-      type: 'streaming',
-      streamingText: '',
-      timestamp: Date.now(),
-    };
-    setMessages((prev) => [...prev, streamMsg]);
-
     try {
-      let fullText = '';
+      const response = await queryLaw({
+        text: trimmed,
+        state: state || undefined,
+      });
 
-      await queryLawStream(
-        { text: trimmed, state: state || undefined },
-        {
-          onMeta: (meta) => {
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === streamId
-                  ? { ...m, streamMeta: meta as ChatMessage['streamMeta'] }
-                  : m,
-              ),
-            );
-          },
-          onChunk: (chunk) => {
-            fullText += chunk;
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === streamId ? { ...m, streamingText: fullText } : m,
-              ),
-            );
-          },
-          onDone: () => {
-            // Convert streaming message to a full response
-            setMessages((prev) =>
-              prev.map((m) => {
-                if (m.id !== streamId) return m;
-                const meta = m.streamMeta;
-                if (!meta) return { ...m, type: 'response' as const, response: { type: 'success' as const, legalBasis: fullText, citations: [], safetyNote: { text: '', isDeescalation: true }, certaintyScore: 0, certaintyLevel: 'low' as const, jurisdiction: { scope: 'central' as const }, disclaimer: '' } };
-                return {
-                  ...m,
-                  type: 'response' as const,
-                  streamingText: undefined,
-                  streamMeta: undefined,
-                  response: {
-                    type: 'success' as const,
-                    legalBasis: fullText,
-                    citations: meta.citations,
-                    safetyNote: {
-                      text: 'If you feel you are in immediate danger or your rights are being violated, please contact local authorities or a legal aid helpline immediately.',
-                      isDeescalation: true,
-                    },
-                    certaintyScore: meta.certaintyScore,
-                    certaintyLevel: meta.certaintyLevel,
-                    jurisdiction: meta.jurisdiction,
-                    disclaimer: 'This information is provided for educational purposes only and does not constitute legal advice. For specific legal matters, please consult a qualified legal professional or contact your nearest Legal Services Authority.',
-                  },
-                };
-              }),
-            );
-          },
-          onError: (errData) => {
-            // Try parsing as refusal JSON
-            let message = errData;
-            try {
-              const parsed = JSON.parse(errData);
-              if (parsed?.message) message = parsed.message;
-            } catch { /* use raw string */ }
+      const responseMsg: ChatMessage = {
+        id: uid(),
+        type: 'response',
+        response,
+        timestamp: Date.now(),
+      };
 
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === streamId
-                  ? { ...m, type: 'error' as const, streamingText: undefined, streamMeta: undefined, errorText: message }
-                  : m,
-              ),
-            );
-          },
-        },
-      );
+      setMessages((prev) => [...prev, responseMsg]);
     } catch (err) {
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === streamId
-            ? { ...m, type: 'error' as const, streamingText: undefined, streamMeta: undefined, errorText: err instanceof Error ? err.message : 'Something went wrong. Please try again.' }
-            : m,
-        ),
-      );
+      const errorMsg: ChatMessage = {
+        id: uid(),
+        type: 'error',
+        errorText: err instanceof Error ? err.message : 'Something went wrong. Please try again.',
+        timestamp: Date.now(),
+      };
+
+      setMessages((prev) => [...prev, errorMsg]);
     } finally {
       setLoading(false);
     }
@@ -446,10 +338,19 @@ export default function Ask() {
               <div key={msg.id} className="animate-fade-in">
                 {msg.type === 'user'      && <UserBubble msg={msg} />}
                 {msg.type === 'response'  && <ResponseBubble msg={msg} />}
-                {msg.type === 'streaming' && <StreamingBubble msg={msg} />}
                 {msg.type === 'error'     && <ErrorBubble msg={msg} />}
               </div>
             ))}
+
+            {/* Loading graph */}
+            {loading && (
+              <div className="flex items-start gap-3 animate-fade-in">
+                <SahayakAvatar size={32} />
+                <div className="min-w-0 flex-1">
+                  <AIProgressLoader maxWidth={420} message="Analyzing your query through the legal pipeline…" />
+                </div>
+              </div>
+            )}
 
             {/* Invisible anchor for scroll-to-bottom */}
             <div ref={messagesEndRef} />

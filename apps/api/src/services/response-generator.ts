@@ -66,35 +66,3 @@ export async function generateLegalResponse(
     return null;
   }
 }
-
-/**
- * Stream the LLM response as an async iterable of text chunks.
- * Falls back to single-chunk if streaming is not supported.
- */
-export async function* streamLegalResponse(
-  query: string,
-  entities: ExtractedEntities,
-  jurisdiction: Jurisdiction,
-  sources: LegalChunk[],
-): AsyncIterable<string> {
-  const userPrompt = buildSahayakPrompt({
-    query,
-    entities,
-    jurisdiction,
-    sources: sources.map((s) => ({
-      text: s.text,
-      section: s.section,
-      act: s.act,
-    })),
-  });
-
-  const llm = getLLM();
-
-  if (llm.generateStream) {
-    yield* llm.generateStream(SAHAYAK_SYSTEM_PROMPT, userPrompt);
-  } else {
-    // Fallback: non-streaming
-    const response = await llm.generate(SAHAYAK_SYSTEM_PROMPT, userPrompt);
-    if (response) yield response;
-  }
-}

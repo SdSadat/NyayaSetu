@@ -15,14 +15,6 @@ export interface LLMProvider {
   generate(systemPrompt: string, userPrompt: string): Promise<string>;
 
   /**
-   * Generate a streaming response. Yields text chunks as they arrive.
-   */
-  generateStream?(
-    systemPrompt: string,
-    userPrompt: string,
-  ): AsyncIterable<string>;
-
-  /**
    * Generate a guaranteed JSON response. The implementation should use
    * native JSON mode where the provider supports it. Nova uses prompt
    * engineering for JSON output.

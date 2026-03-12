@@ -29,7 +29,6 @@ import {
   applyGuardrails,
   checkForAdvisoryLanguage,
   refuseNoSources,
-  refuseLowCertainty,
   refuseUnknownJurisdiction,
 } from '@nyayasetu/safety-layer';
 import type { GuardrailInput } from '@nyayasetu/safety-layer';
@@ -40,7 +39,7 @@ import {
 
 import { config } from '../config/index.js';
 import { getRetriever } from './vector-store.js';
-import { generateLegalResponse, streamLegalResponse } from './response-generator.js';
+import { generateLegalResponse } from './response-generator.js';
 
 // ---------------------------------------------------------------------------
 // Pipeline input type
@@ -273,77 +272,4 @@ export async function processQuery(input: QueryInput): Promise<SahayakResponse> 
   const finalResponse = applyGuardrails(guardrailInput, config.safety);
 
   return finalResponse;
-}
-
-// ---------------------------------------------------------------------------
-// Streaming Pipeline — yields SSE events
-// ---------------------------------------------------------------------------
-
-export interface StreamEvent {
-  type: 'meta' | 'chunk' | 'done' | 'error';
-  data: unknown;
-}
-
-/**
- * Streaming variant of processQuery. Yields SSE-compatible events:
- *  - meta: citations, certainty, jurisdiction (sent before text starts)
- *  - chunk: incremental text tokens
- *  - done: final signal
- *  - error: if something goes wrong
- */
-export async function* processQueryStream(input: QueryInput): AsyncGenerator<StreamEvent> {
-  const normalizedText = normalizeQuery(input.text);
-  const entities = extractEntities(normalizedText, input.state);
-  const jurisdiction = resolveQueryJurisdiction(entities);
-
-  if (!jurisdiction) {
-    yield { type: 'error', data: refuseUnknownJurisdiction() };
-    return;
-  }
-
-  const retrieval = await retrieveSources(normalizedText, jurisdiction);
-
-  if (retrieval.chunks.length === 0 && config.safety.refuseOnNoSource) {
-    yield { type: 'error', data: refuseNoSources() };
-    return;
-  }
-
-  const citations = buildCitations(retrieval.chunks);
-  const certaintyScore: number = retrieval.scores.length > 0
-    ? retrieval.scores.reduce((sum, s) => sum + s, 0) / retrieval.scores.length
-    : 0;
-
-  if (certaintyScore < config.safety.certaintyThreshold) {
-    yield { type: 'error', data: refuseLowCertainty(certaintyScore) };
-    return;
-  }
-
-  // Send metadata before streaming text
-  yield {
-    type: 'meta',
-    data: {
-      citations,
-      certaintyScore,
-      certaintyLevel: certaintyScore >= 0.8 ? 'high' : certaintyScore >= 0.5 ? 'medium' : 'low',
-      jurisdiction,
-    },
-  };
-
-  // Stream LLM text chunks
-  try {
-    for await (const chunk of streamLegalResponse(
-      normalizedText,
-      entities,
-      jurisdiction,
-      retrieval.chunks,
-    )) {
-      yield { type: 'chunk', data: chunk };
-    }
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    yield { type: 'error', data: { type: 'refusal', reason: 'generation-failed', message, suggestHumanLawyer: true } };
-    return;
-  }
-
-  yield { type: 'done', data: null };
 }
