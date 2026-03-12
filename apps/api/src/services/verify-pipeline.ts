@@ -65,15 +65,18 @@ const SCORE_WEIGHTS: Record<AuthenticityIssueCategory, number> = {
 
 const SEVERITY_DEDUCTIONS = {
   critical: 35,
-  warning: 15,
-  info: 5,
+  warning: 14,
+  info: 4,
 } as const;
 
-/** If ANY critical issue exists, overall score is capped at this value. */
-const CRITICAL_ISSUE_SCORE_CAP = 55;
+/** Single critical issue in any category caps overall at this value. */
+const SINGLE_CRITICAL_CAP = 65;
 
-/** If critical issues exist in 3+ categories, apply this additional multiplier. */
-const MULTI_CATEGORY_CRITICAL_MULTIPLIER = 0.6;
+/** If critical issues exist in 2 categories, cap overall score at this value. */
+const TWO_CATEGORY_CRITICAL_CAP = 45;
+
+/** If critical issues exist in 3+ categories, cap overall score at this value. */
+const MULTI_CATEGORY_CRITICAL_CAP = 30;
 
 const DISCLAIMER =
   'This analysis is AI-generated and for informational purposes only. ' +
@@ -190,8 +193,13 @@ function categoryKey(cat: AuthenticityIssueCategory): keyof AuthenticityScoreBre
 }
 
 /**
- * Calculate per-category score from issues, optionally incorporating
- * the LLM's own category score (take the lower of the two).
+ * Calculate per-category score from issues, incorporating
+ * the LLM's own category score via averaging (not just min).
+ *
+ * For categories with critical issues, we take the LOWER of the two
+ * to prevent the LLM from being too generous on scam docs.
+ * For categories without critical issues, we AVERAGE the two
+ * to prevent over-penalizing legitimate documents.
  */
 function calculateCategoryScore(
   issues: AuthenticityIssue[],
@@ -199,23 +207,35 @@ function calculateCategoryScore(
   llmScore?: number,
 ): number {
   const categoryIssues = issues.filter((i) => i.category === category);
-  let score = 100;
+  let deductionScore = 100;
   for (const issue of categoryIssues) {
-    score -= SEVERITY_DEDUCTIONS[issue.severity];
+    deductionScore -= SEVERITY_DEDUCTIONS[issue.severity];
   }
-  score = Math.max(0, score);
+  deductionScore = Math.max(0, deductionScore);
 
-  // Use the lower of our calculated score and the LLM's own assessment
-  if (llmScore !== undefined && llmScore >= 0) {
-    score = Math.min(score, llmScore);
+  if (llmScore === undefined || llmScore < 0) {
+    return deductionScore;
   }
 
-  return score;
+  const hasCritical = categoryIssues.some((i) => i.severity === 'critical');
+  if (hasCritical) {
+    // For categories with critical issues, use the lower score to prevent leniency
+    return Math.min(deductionScore, llmScore);
+  }
+
+  // For categories without critical issues, average the two scores
+  // This prevents over-penalizing legitimate documents where the LLM
+  // gave a high score but deductions from info/warning issues pull it down
+  return Math.round((deductionScore + llmScore) / 2);
 }
 
 /**
- * Calculate overall score with critical issue caps and
- * multi-category penalty.
+ * Calculate overall score with caps based on how many categories
+ * have critical issues. This is more nuanced than a blanket cap:
+ * - 1 critical category: no cap (the weighted average already reflects it)
+ * - 2 critical categories: cap at 55
+ * - 3+ critical categories: cap at 40
+ * - 8+ total issues with criticals: additional 0.85x multiplier
  */
 function calculateOverallScore(
   breakdown: AuthenticityScoreBreakdown,
@@ -230,26 +250,24 @@ function calculateOverallScore(
   }
   score = Math.round(score);
 
-  // Cap if any critical issues exist
-  const hasCritical = issues.some((i) => i.severity === 'critical');
-  if (hasCritical) {
-    score = Math.min(score, CRITICAL_ISSUE_SCORE_CAP);
-  }
-
-  // Additional penalty if critical issues span 3+ categories
+  // Cap based on how many categories have critical issues
   const criticalCategories = new Set(
     issues.filter((i) => i.severity === 'critical').map((i) => i.category),
   );
+
   if (criticalCategories.size >= 3) {
-    score = Math.round(score * MULTI_CATEGORY_CRITICAL_MULTIPLIER);
+    score = Math.min(score, MULTI_CATEGORY_CRITICAL_CAP);
+  } else if (criticalCategories.size >= 2) {
+    score = Math.min(score, TWO_CATEGORY_CRITICAL_CAP);
+  } else if (criticalCategories.size === 1) {
+    score = Math.min(score, SINGLE_CRITICAL_CAP);
   }
 
-  // Volume penalty: many issues compound the suspicion
-  const totalIssues = issues.length;
-  if (totalIssues >= 5) {
-    score = Math.round(score * 0.85);
-  } else if (totalIssues >= 8) {
-    score = Math.round(score * 0.7);
+  // Volume penalty: many issues compound suspicion
+  if (issues.length >= 8) {
+    score = Math.round(score * 0.8);
+  } else if (issues.length >= 5) {
+    score = Math.round(score * 0.9);
   }
 
   return Math.max(0, Math.min(100, score));
