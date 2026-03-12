@@ -164,38 +164,117 @@ export default function Cards() {
 
   const countFor = (cat: RightsCardCategory) => cards.filter((c) => c.category === cat).length;
 
+  const variantCountFor = (v: RightsCardVariant) => cards.filter((c) => c.variant === v).length;
+
   return (
     <div className="min-h-screen">
       {/* Hero */}
-      <div className="relative overflow-hidden border-b border-white/6 pb-10 pt-12 px-6">
+      <div className="relative overflow-hidden border-b border-white/6 pb-8 pt-10 px-6">
         <div
           className="absolute inset-0 pointer-events-none"
-          style={{
-            background:
-              'radial-gradient(ellipse 70% 80% at 50% -10%, rgba(167,139,250,0.18), transparent 70%)',
-          }}
+          style={{ background: 'radial-gradient(ellipse 60% 80% at 20% -10%, rgba(167,139,250,0.16), transparent 70%)' }}
         />
-        <div className="relative max-w-5xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-violet-400/25 bg-violet-400/8 text-violet-300 text-xs font-medium mb-4">
-            <span>📋</span> Know Your Rights
-          </div>
-          <h1 className="text-3xl sm:text-4xl font-bold text-white mb-3">
-            Rights Cards
-          </h1>
-          <p className="text-white/50 text-base max-w-lg mx-auto leading-relaxed">
-            Concise, legally accurate cards covering your rights in everyday Indian legal situations.
-          </p>
+        <div className="relative max-w-5xl mx-auto">
+          <div className="flex flex-col lg:flex-row lg:items-start lg:gap-10">
 
-          {/* Search */}
-          <div className="mt-6 max-w-md mx-auto relative">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30 text-sm">🔍</span>
-            <input
-              type="text"
-              placeholder="Search cards…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white/6 border border-white/10 text-sm text-white placeholder-white/30 focus:outline-none focus:border-violet-400/40 transition-colors"
-            />
+            {/* Left: title + search */}
+            <div className="flex-1 min-w-0">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-violet-400/25 bg-violet-400/8 text-violet-300 text-xs font-medium mb-3">
+                <span>📋</span> Know Your Rights
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-1.5">
+                Rights Cards
+              </h1>
+              <p className="text-white/45 text-sm leading-relaxed max-w-md">
+                Concise, legally accurate cards covering your rights in everyday Indian legal situations.
+              </p>
+
+              {/* Search */}
+              <div className="mt-4 max-w-md relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/25">
+                  <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                </span>
+                <input
+                  type="text"
+                  placeholder="Search cards…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-sm text-white placeholder-white/25 focus:outline-none focus:border-violet-400/35 transition-colors"
+                />
+                {search && (
+                  <button
+                    onClick={() => setSearch('')}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/30 transition hover:text-white/60"
+                  >
+                    <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Right: category mosaic + stats */}
+            <div className="mt-6 lg:mt-0 lg:flex-none">
+              {/* Category grid */}
+              <div className="grid grid-cols-3 gap-2 mb-3">
+                {ALL_CATEGORIES.map((cat) => {
+                  const meta = CATEGORY_META[cat];
+                  const colors = CARD_CATEGORY_COLORS[cat];
+                  const count = countFor(cat);
+                  const isActive = selectedCategory === cat;
+                  return (
+                    <button
+                      key={cat}
+                      onClick={() => setSelectedCategory(isActive ? null : cat)}
+                      className="group relative flex flex-col items-center gap-1 rounded-xl px-3 py-2.5 transition-all duration-200 hover:-translate-y-px"
+                      style={{
+                        background: isActive ? colors.accent + '18' : 'rgba(255,255,255,0.03)',
+                        border: `1px solid ${isActive ? colors.accent + '40' : 'rgba(255,255,255,0.06)'}`,
+                      }}
+                    >
+                      <span className="text-lg leading-none">{meta.icon}</span>
+                      <span
+                        className="text-[10px] font-medium truncate max-w-full"
+                        style={{ color: isActive ? colors.accent : 'rgba(255,255,255,0.5)' }}
+                      >
+                        {meta.label.split(' ')[0]}
+                      </span>
+                      <span
+                        className="text-[9px] font-mono"
+                        style={{ color: isActive ? colors.accent : 'rgba(255,255,255,0.2)' }}
+                      >
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Variant pills */}
+              <div className="flex flex-wrap gap-1.5">
+                {ALL_VARIANTS.map((v) => {
+                  const isActive = selectedVariant === v;
+                  return (
+                    <button
+                      key={v}
+                      onClick={() => setSelectedVariant(isActive ? null : v)}
+                      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium transition-all duration-200"
+                      style={{
+                        background: isActive ? 'rgba(167,139,250,0.15)' : 'rgba(255,255,255,0.04)',
+                        color: isActive ? '#a78bfa' : 'rgba(255,255,255,0.35)',
+                        border: `1px solid ${isActive ? 'rgba(167,139,250,0.3)' : 'rgba(255,255,255,0.06)'}`,
+                      }}
+                    >
+                      {VARIANT_ICONS[v]} {VARIANT_LABELS[v]}
+                      <span className="font-mono ml-0.5" style={{ opacity: 0.6 }}>{variantCountFor(v)}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
       </div>
