@@ -29,3 +29,12 @@ export {
 } from './verification-prompt.js';
 
 export type { VerificationPromptParams } from './verification-prompt.js';
+
+export {
+  DOCUMENT_VERIFY_SYSTEM_PROMPT,
+  DOCUMENT_VERIFY_VISUAL_SYSTEM_PROMPT,
+  DOCUMENT_VERIFY_PROMPT_VERSION,
+  buildDocumentVerifyPrompt,
+} from './document-verify-prompt.js';
+
+export type { DocumentVerifyPromptParams } from './document-verify-prompt.js';

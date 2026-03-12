@@ -353,6 +353,86 @@ export interface VerificationResult {
 }
 
 // ---------------------------------------------------------------------------
+// Document Authenticity Verification (Sahayak)
+// ---------------------------------------------------------------------------
+
+export type AuthenticityIssueCategory =
+  | 'formatting'
+  | 'language'
+  | 'dates'
+  | 'signatures'
+  | 'legal-references'
+  | 'metadata'
+  | 'consistency';
+
+export type AuthenticityIssueSeverity = 'critical' | 'warning' | 'info';
+
+export interface AuthenticityIssue {
+  id: string;
+  category: AuthenticityIssueCategory;
+  severity: AuthenticityIssueSeverity;
+  title: string;
+  description: string;
+  /** Paragraph index (0-based) in the split document. -1 for visual-only issues. */
+  paragraphIndex: number;
+  /** Start char offset within the paragraph (-1 if whole paragraph or visual-only) */
+  charStart: number;
+  /** End char offset within the paragraph (-1 if whole paragraph or visual-only) */
+  charEnd: number;
+  /** The exact text snippet flagged (empty for visual-only issues) */
+  flaggedText: string;
+  /** What was expected or is standard */
+  expectedBehavior: string;
+}
+
+export interface AuthenticityScoreBreakdown {
+  formatting: number;
+  language: number;
+  dates: number;
+  signatures: number;
+  legalReferences: number;
+  metadata: number;
+  consistency: number;
+}
+
+export type AuthenticityVerdict = 'likely-authentic' | 'suspicious' | 'likely-fraudulent';
+
+export interface DocumentVerifyResponse {
+  type: 'success';
+  overallScore: number;
+  verdict: AuthenticityVerdict;
+  scoreBreakdown: AuthenticityScoreBreakdown;
+  issues: AuthenticityIssue[];
+  /** Document split into paragraphs for highlight rendering */
+  paragraphs: string[];
+  documentSummary: string;
+  documentType: string;
+  legalReferencesChecked: number;
+  legalReferencesVerified: number;
+  /** Base64 image data if an image was uploaded (for display) */
+  imageData?: string;
+  /** Image MIME type */
+  imageMime?: string;
+  analysisTimestamp: string;
+  disclaimer: string;
+}
+
+export type DocumentVerifyRefusalReason =
+  | 'unsupported-format'
+  | 'too-short'
+  | 'not-legal'
+  | 'llm-error'
+  | 'parse-error';
+
+export interface DocumentVerifyRefusal {
+  type: 'refusal';
+  reason: DocumentVerifyRefusalReason;
+  message: string;
+}
+
+export type DocumentVerifyResult = DocumentVerifyResponse | DocumentVerifyRefusal;
+
+// ---------------------------------------------------------------------------
 // Configuration
 // ---------------------------------------------------------------------------
 

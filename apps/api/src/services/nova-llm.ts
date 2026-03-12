@@ -21,9 +21,13 @@ import type { LLMProvider } from './llm-provider.js';
 // Nova request/response types (Bedrock InvokeModel native format)
 // ---------------------------------------------------------------------------
 
+type NovaContentPart =
+  | { text: string }
+  | { image: { format: 'png' | 'jpeg' | 'gif' | 'webp'; source: { bytes: string } } };
+
 interface NovaMessage {
   role: 'user' | 'assistant';
-  content: Array<{ text: string }>;
+  content: NovaContentPart[];
 }
 
 interface NovaRequest {
@@ -181,6 +185,61 @@ export class NovaLLM implements LLMProvider {
     }
 
     return parts.map((p) => p.text).join('');
+  }
+
+  /**
+   * Generate a JSON response from a multimodal prompt (text + image).
+   * Sends image bytes alongside text to Nova for visual document analysis.
+   */
+  async generateJSONWithImage(
+    systemPrompt: string,
+    userPrompt: string,
+    imageBytes: Buffer,
+    imageFormat: 'png' | 'jpeg' | 'gif' | 'webp',
+  ): Promise<string> {
+    const jsonSystemPrompt = `${systemPrompt}\n\nIMPORTANT: You MUST respond with ONLY valid JSON. Do NOT include any text, markdown fences, or explanation before or after the JSON. Start your response with \`{\` and end with \`}\`.`;
+
+    const body: NovaRequest = {
+      system: [{ text: jsonSystemPrompt }],
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              image: {
+                format: imageFormat,
+                source: { bytes: imageBytes.toString('base64') },
+              },
+            },
+            { text: userPrompt },
+          ],
+        },
+      ],
+      inferenceConfig: {
+        maxTokens: 5000,
+        temperature: 0.1,
+        topP: 0.9,
+      },
+    };
+
+    const command = new InvokeModelCommand({
+      modelId: this.modelId,
+      contentType: 'application/json',
+      accept: 'application/json',
+      body: JSON.stringify(body),
+    });
+
+    const response = await this.client.send(command);
+    const responseBody = JSON.parse(
+      new TextDecoder().decode(response.body),
+    ) as NovaResponse;
+
+    const parts = responseBody.output?.message?.content;
+    if (!parts || parts.length === 0) {
+      throw new Error('Nova returned no content in multimodal response.');
+    }
+
+    return parts.map((p) => (p as { text: string }).text).join('');
   }
 
   /**

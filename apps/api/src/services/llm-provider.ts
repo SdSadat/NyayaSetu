@@ -24,6 +24,17 @@ export interface LLMProvider {
   generateJSON(systemPrompt: string, userPrompt: string): Promise<string>;
 
   /**
+   * Generate a JSON response from a multimodal prompt (text + image).
+   * Optional — only providers with vision capabilities implement this.
+   */
+  generateJSONWithImage?(
+    systemPrompt: string,
+    userPrompt: string,
+    imageBytes: Buffer,
+    imageFormat: 'png' | 'jpeg' | 'gif' | 'webp',
+  ): Promise<string>;
+
+  /**
    * Check whether the provider is reachable and operational.
    */
   isAvailable(): Promise<boolean>;

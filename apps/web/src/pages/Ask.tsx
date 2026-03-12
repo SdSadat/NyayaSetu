@@ -5,11 +5,14 @@ import {
   useCallback,
   type KeyboardEvent,
 } from 'react';
-import type { SahayakResponse } from '@nyayasetu/shared-types';
-import { queryLaw } from '@/lib/api';
+import type { SahayakResponse, DocumentVerifyResult } from '@nyayasetu/shared-types';
+import { queryLaw, verifyDocument } from '@/lib/api';
 import LegalResponseCard from '@/components/LegalResponse';
 import RefusalCard from '@/components/RefusalCard';
 import AIProgressLoader from '@/components/AIProgressLoader';
+import { ModeToggle, type SahayakMode } from '@/components/verify/ModeToggle';
+import { FileDropZone } from '@/components/verify/FileDropZone';
+import { VerifyResultCard } from '@/components/verify/VerifyResultCard';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -17,10 +20,11 @@ import AIProgressLoader from '@/components/AIProgressLoader';
 
 interface ChatMessage {
   id: string;
-  type: 'user' | 'response' | 'error';
+  type: 'user' | 'response' | 'error' | 'verify-result';
   text?: string;
   jurisdictionLabel?: string;
   response?: SahayakResponse;
+  verifyResponse?: DocumentVerifyResult;
   errorText?: string;
   timestamp: number;
 }
@@ -156,6 +160,59 @@ function ErrorBubble({ msg }: { msg: ChatMessage }) {
   );
 }
 
+function VerifyResultBubble({ msg }: { msg: ChatMessage }) {
+  return (
+    <div className="flex items-start gap-3">
+      <SahayakAvatar size={32} />
+      <div className="min-w-0 flex-1 space-y-1">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold text-neon-cyan">Sahayak</span>
+          <span className="rounded-full bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 text-[9px] text-amber-400">VERIFY</span>
+          <span className="text-[10px] text-gray-600">{formatTime(msg.timestamp)}</span>
+        </div>
+        {msg.verifyResponse?.type === 'success' ? (
+          <VerifyResultCard result={msg.verifyResponse} />
+        ) : msg.verifyResponse?.type === 'refusal' ? (
+          <div className="rounded-2xl rounded-tl-sm border border-amber-500/20 bg-amber-500/5 px-4 py-3">
+            <p className="text-sm font-medium text-amber-400">Could not verify document</p>
+            <p className="mt-1 text-xs text-amber-300/70">{msg.verifyResponse.message}</p>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function VerifyEmptyState() {
+  return (
+    <div className="flex h-full flex-col items-center justify-center px-4 py-10">
+      <div className="mb-5 h-16 w-16 overflow-hidden rounded-2xl border border-amber-400/20"
+        style={{ boxShadow: '0 0 24px rgba(245,158,11,0.15)' }}>
+        <div className="h-full w-full flex items-center justify-center text-3xl bg-amber-500/[0.06]">
+          🔍
+        </div>
+      </div>
+      <h2 className="text-lg font-bold text-white">Verify a Document</h2>
+      <p className="mt-1 max-w-xs text-center text-sm text-gray-500">
+        Upload a legal document (PDF, image, or text) and get an AI-powered
+        authenticity analysis with highlighted issues.
+      </p>
+      <div className="mt-6 grid grid-cols-3 gap-4 max-w-sm">
+        {[
+          { icon: '📄', label: 'Court Orders' },
+          { icon: '📋', label: 'Legal Notices' },
+          { icon: '📝', label: 'FIRs & Agreements' },
+        ].map(({ icon, label }) => (
+          <div key={label} className="flex flex-col items-center gap-1.5 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
+            <span className="text-xl">{icon}</span>
+            <span className="text-[10px] text-slate-500">{label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function EmptyState({ onExample }: { onExample: (q: string) => void }) {
   return (
     <div className="flex h-full flex-col items-center justify-center px-4 py-10">
@@ -197,6 +254,7 @@ export default function Ask() {
   const [text, setText] = useState('');
   const [state, setState] = useState('');
   const [loading, setLoading] = useState(false);
+  const [mode, setMode] = useState<SahayakMode>('chat');
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -286,6 +344,40 @@ export default function Ask() {
     localStorage.removeItem(STORAGE_KEY);
   }
 
+  const handleVerifySubmit = useCallback(async (file: File) => {
+    if (loading) return;
+
+    const userMsg: ChatMessage = {
+      id: uid(),
+      type: 'user',
+      text: `Verify document: ${file.name}`,
+      timestamp: Date.now(),
+    };
+    setMessages((prev) => [...prev, userMsg]);
+    setLoading(true);
+
+    try {
+      const result = await verifyDocument(file);
+      const resultMsg: ChatMessage = {
+        id: uid(),
+        type: 'verify-result',
+        verifyResponse: result,
+        timestamp: Date.now(),
+      };
+      setMessages((prev) => [...prev, resultMsg]);
+    } catch (err) {
+      const errorMsg: ChatMessage = {
+        id: uid(),
+        type: 'error',
+        errorText: err instanceof Error ? err.message : 'Document verification failed. Please try again.',
+        timestamp: Date.now(),
+      };
+      setMessages((prev) => [...prev, errorMsg]);
+    } finally {
+      setLoading(false);
+    }
+  }, [loading]);
+
   const isEmpty = messages.length === 0 && !loading;
 
   return (
@@ -307,6 +399,9 @@ export default function Ask() {
           </div>
         </div>
 
+        <div className="flex items-center gap-2">
+          <ModeToggle mode={mode} onChange={setMode} />
+
         {!isEmpty && (
           <button
             onClick={clearChat}
@@ -322,6 +417,7 @@ export default function Ask() {
             Clear
           </button>
         )}
+        </div>
       </div>
 
       {/* ── Chat Area ── */}
@@ -331,14 +427,17 @@ export default function Ask() {
         style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.06) transparent' }}
       >
         {isEmpty ? (
-          <EmptyState onExample={(q) => { setText(q); textareaRef.current?.focus(); }} />
+          mode === 'verify'
+            ? <VerifyEmptyState />
+            : <EmptyState onExample={(q) => { setText(q); textareaRef.current?.focus(); }} />
         ) : (
           <div className="space-y-6 pb-4 pt-2">
             {messages.map((msg) => (
               <div key={msg.id} className="animate-fade-in">
-                {msg.type === 'user'      && <UserBubble msg={msg} />}
-                {msg.type === 'response'  && <ResponseBubble msg={msg} />}
-                {msg.type === 'error'     && <ErrorBubble msg={msg} />}
+                {msg.type === 'user'           && <UserBubble msg={msg} />}
+                {msg.type === 'response'       && <ResponseBubble msg={msg} />}
+                {msg.type === 'verify-result'  && <VerifyResultBubble msg={msg} />}
+                {msg.type === 'error'          && <ErrorBubble msg={msg} />}
               </div>
             ))}
 
@@ -347,7 +446,7 @@ export default function Ask() {
               <div className="flex items-start gap-3 animate-fade-in">
                 <SahayakAvatar size={32} />
                 <div className="min-w-0 flex-1">
-                  <AIProgressLoader maxWidth={420} message="Analyzing your query through the legal pipeline…" />
+                  <AIProgressLoader maxWidth={420} message={mode === 'verify' ? "Analyzing document for authenticity…" : "Analyzing your query through the legal pipeline…"} />
                 </div>
               </div>
             )}
@@ -360,6 +459,15 @@ export default function Ask() {
 
       {/* ── Input Bar ── */}
       <div className="shrink-0 border-t border-white/[0.06] py-4">
+        {mode === 'verify' ? (
+          <div className="pb-2">
+            <FileDropZone onSubmit={handleVerifySubmit} disabled={loading} />
+            <p className="mt-2 text-center text-[10px] text-gray-700">
+              Upload a legal document for AI-powered authenticity verification
+            </p>
+          </div>
+        ) : (
+        <>
         {/* Example chips - only when chat is non-empty but textarea is empty */}
         {messages.length > 0 && !text && !loading && (
           <div className="mb-3 flex flex-wrap gap-1.5">
@@ -441,6 +549,8 @@ export default function Ask() {
         <p className="mt-1.5 text-center text-[10px] text-gray-700">
           Sahayak provides legal information, not legal advice · Always consult a qualified lawyer
         </p>
+        </>
+        )}
       </div>
     </main>
   );

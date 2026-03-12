@@ -1,14 +1,15 @@
 // =============================================================================
 // Sahayak Routes — Citizen Legal Information Engine
 // =============================================================================
-// POST /api/v1/sahayak/query        — JSON response (original)
-// POST /api/v1/sahayak/query/stream — SSE streaming response
+// POST /api/v1/sahayak/query   — Legal Q&A (JSON response)
+// POST /api/v1/sahayak/verify  — Document authenticity verification (multipart)
 // =============================================================================
 
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import type { SahayakResponse, SupportedState } from '@nyayasetu/shared-types';
 import { processQuery } from '../services/query-pipeline.js';
+import { runVerifyPipeline } from '../services/verify-pipeline.js';
 
 // ---------------------------------------------------------------------------
 // Request validation schema
@@ -66,4 +67,54 @@ export const sahayakRoutes: FastifyPluginAsync = async (
       return reply.status(statusCode).send(response);
     },
   );
+
+  /**
+   * POST /verify — Document authenticity verification (multipart upload)
+   */
+  fastify.post('/verify', async (request, reply) => {
+    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+    const ALLOWED_MIMES = new Set([
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain',
+      'image/png',
+      'image/jpeg',
+      'image/jpg',
+      'image/gif',
+      'image/webp',
+    ]);
+
+    let data;
+    try {
+      data = await request.file({ limits: { fileSize: MAX_FILE_SIZE } });
+    } catch {
+      return reply.status(400).send({
+        type: 'refusal',
+        reason: 'unsupported-format',
+        message: 'No file uploaded. Please attach a document to verify.',
+      });
+    }
+
+    if (!data) {
+      return reply.status(400).send({
+        type: 'refusal',
+        reason: 'unsupported-format',
+        message: 'No file uploaded. Please attach a document to verify.',
+      });
+    }
+
+    if (!ALLOWED_MIMES.has(data.mimetype)) {
+      return reply.status(400).send({
+        type: 'refusal',
+        reason: 'unsupported-format',
+        message: `Unsupported file type "${data.mimetype}". Please upload a PDF, DOCX, TXT, PNG, or JPG file.`,
+      });
+    }
+
+    const buffer = await data.toBuffer();
+
+    const result = await runVerifyPipeline(buffer, data.filename, data.mimetype);
+    const statusCode = result.type === 'success' ? 200 : 422;
+    return reply.status(statusCode).send(result);
+  });
 };

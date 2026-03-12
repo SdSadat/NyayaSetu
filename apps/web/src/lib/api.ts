@@ -1,4 +1,4 @@
-import type { SahayakResponse, LessonCard, QuizQuestion, DrishtiAnalysis, RightsCard, RightsCardCategory, RightsCardVariant } from '@nyayasetu/shared-types';
+import type { SahayakResponse, LessonCard, QuizQuestion, DrishtiAnalysis, RightsCard, RightsCardCategory, RightsCardVariant, DocumentVerifyResult } from '@nyayasetu/shared-types';
 import { getToken } from './auth';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
@@ -68,6 +68,37 @@ export function queryLaw(params: QueryLawParams): Promise<SahayakResponse> {
     method: 'POST',
     body: JSON.stringify(params),
   });
+}
+
+/** Upload a document for authenticity verification. */
+export async function verifyDocument(file: File): Promise<DocumentVerifyResult> {
+  const url = `${BASE_URL}/api/v1/sahayak/verify`;
+  const formData = new FormData();
+  formData.append('file', file);
+
+  let response: Response;
+  try {
+    const uploadHeaders: Record<string, string> = {};
+    const token = getToken();
+    if (token) uploadHeaders['Authorization'] = `Bearer ${token}`;
+    response = await fetch(url, { method: 'POST', body: formData, headers: uploadHeaders });
+  } catch {
+    throw new Error('Unable to connect. Please check your internet connection.');
+  }
+
+  if (!response.ok) {
+    try {
+      const body = await response.json() as Record<string, unknown>;
+      if (typeof body?.message === 'string' && body.message) {
+        throw new Error(body.message);
+      }
+    } catch (inner) {
+      if (inner instanceof Error) throw inner;
+    }
+    throw new Error(`Document verification failed (${response.status}).`);
+  }
+
+  return response.json() as Promise<DocumentVerifyResult>;
 }
 
 // ---------------------------------------------------------------------------
