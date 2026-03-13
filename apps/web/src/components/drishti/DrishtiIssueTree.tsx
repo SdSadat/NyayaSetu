@@ -5,8 +5,9 @@ interface Props {
   issues: DrishtiIssueNode[];
 }
 
-function IssueNode({ node, depth }: { node: DrishtiIssueNode; depth: number }) {
+function IssueNode({ node, allIssues, depth }: { node: DrishtiIssueNode; allIssues: DrishtiIssueNode[]; depth: number }) {
   const [open, setOpen] = useState(true);
+  const children = allIssues.filter((n) => n.parentId === node.id);
 
   return (
     <div className={depth > 0 ? 'ml-5 border-l border-white/[0.06] pl-4' : ''}>
@@ -51,15 +52,23 @@ function IssueNode({ node, depth }: { node: DrishtiIssueNode; depth: number }) {
               <span className="text-xs text-gray-300">{node.courtFinding}</span>
             </div>
           )}
-          {node.appliedLaw.length > 0 && (
+          {(node.appliedLaw ?? []).length > 0 && (
             <div className="flex flex-wrap gap-1">
-              {node.appliedLaw.map((law, i) => (
+              {(node.appliedLaw ?? []).map((law, i) => (
                 <span
                   key={i}
                   className="rounded-full border border-neon-cyan/20 bg-neon-cyan/5 px-2 py-0.5 text-[10px] text-neon-cyan"
                 >
                   {law}
                 </span>
+              ))}
+            </div>
+          )}
+          {/* Render child issues */}
+          {children.length > 0 && (
+            <div className="mt-2 space-y-3">
+              {children.map((child) => (
+                <IssueNode key={child.id} node={child} allIssues={allIssues} depth={depth + 1} />
               ))}
             </div>
           )}
@@ -87,7 +96,7 @@ export default function DrishtiIssueTree({ issues }: Props) {
       </h3>
       <div className="space-y-3">
         {roots.map((root) => (
-          <IssueNode key={root.id} node={root} depth={0} />
+          <IssueNode key={root.id} node={root} allIssues={issues} depth={0} />
         ))}
       </div>
     </div>

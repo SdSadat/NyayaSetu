@@ -50,7 +50,7 @@ export default function DrishtiRatioObiter({ paragraphs }: Props) {
           All ({paragraphs.length})
         </button>
         {ALL_TYPES.filter((t) => counts[t] > 0).map((t) => {
-          const style = TYPE_STYLES[t];
+          const style = TYPE_STYLES[t] ?? TYPE_STYLES.background;
           return (
             <button
               key={t}
@@ -70,7 +70,7 @@ export default function DrishtiRatioObiter({ paragraphs }: Props) {
       {/* Paragraphs */}
       <div className="space-y-3">
         {filtered.map((para, i) => {
-          const style = TYPE_STYLES[para.type];
+          const style = TYPE_STYLES[para.type] ?? TYPE_STYLES.background;
           return (
             <div
               key={i}
@@ -84,9 +84,9 @@ export default function DrishtiRatioObiter({ paragraphs }: Props) {
                 </span>
               </div>
               <p className="text-sm text-gray-300 leading-relaxed">{para.text}</p>
-              {para.citations.length > 0 && (
+              {(para.citations ?? []).length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-1">
-                  {para.citations.map((c, j) => (
+                  {(para.citations ?? []).map((c, j) => (
                     <span
                       key={j}
                       className={`rounded-full border px-2 py-0.5 text-[10px] ${style.text} ${style.border}`}

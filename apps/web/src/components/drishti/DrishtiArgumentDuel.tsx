@@ -179,9 +179,9 @@ function ArgumentCard({
     <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3"
       style={{ borderLeftWidth: 2, borderLeftColor: `${color}40` }}>
       <p className="text-xs leading-relaxed text-gray-300">{arg.point}</p>
-      {arg.citedLaw.length > 0 && (
+      {(arg.citedLaw ?? []).length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1">
-          {arg.citedLaw.map((l, j) => (
+          {(arg.citedLaw ?? []).map((l, j) => (
             <span key={j}
               className="rounded-full border px-1.5 py-0.5 text-[10px]"
               style={{ color, borderColor: `${color}30`, backgroundColor: `${color}10` }}>
