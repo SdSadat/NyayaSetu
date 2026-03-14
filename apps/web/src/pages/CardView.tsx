@@ -159,11 +159,11 @@ export default function CardView() {
 
     const marked: Element[] = [];
     // Walk up from card to body, hiding siblings at each level
-    let node: HTMLElement | null = cardEl;
+    let node = cardEl as HTMLElement | null;
     while (node && node !== document.body) {
-      const parent = node.parentElement;
+      const parent: HTMLElement | null = node.parentElement;
       if (parent) {
-        for (const sibling of Array.from(parent.children)) {
+        for (const sibling of Array.from(parent.children) as Element[]) {
           if (sibling !== node && !sibling.hasAttribute('data-print-hide')) {
             sibling.setAttribute('data-print-hide', '');
             marked.push(sibling);
