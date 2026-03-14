@@ -1,0 +1,7 @@
+{
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "http://34.232.62.68:3029/api/:path*" },
+    { "source": "/health", "destination": "http://34.232.62.68:3029/health" },
+    { "source": "/((?!api|health|assets/).*)", "destination": "/index.html" }
+  ]
+}
