@@ -71,32 +71,25 @@ async function shareCard(card: RightsCard) {
 }
 
 // ---------------------------------------------------------------------------
-// Print styles injected once
+// Print styles — injected once into <head>
 // ---------------------------------------------------------------------------
 
 const PRINT_STYLE_ID = 'nyaya-print-style';
 
-function injectPrintStyles(accentColor: string) {
-  let el = document.getElementById(PRINT_STYLE_ID);
-  if (!el) {
-    el = document.createElement('style');
-    el.id = PRINT_STYLE_ID;
-    document.head.appendChild(el);
-  }
+function ensurePrintStyles() {
+  if (document.getElementById(PRINT_STYLE_ID)) return;
+  const el = document.createElement('style');
+  el.id = PRINT_STYLE_ID;
   el.textContent = `
     @media print {
-      body > * { display: none !important; }
-      #card-print-area { display: block !important; }
-      #card-print-area {
-        background: white !important;
-        color: #111 !important;
-        padding: 2rem !important;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
-        max-width: 600px !important;
-        border-top: 4px solid ${accentColor} !important;
-      }
+      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+      [data-print-hide] { display: none !important; }
+      #card-print-area { border-radius: 0 !important; }
+      #card-print-area .pointer-events-none { display: none !important; }
+      @page { margin: 0.5cm; size: A4 portrait; }
     }
   `;
+  document.head.appendChild(el);
 }
 
 // ---------------------------------------------------------------------------
@@ -158,8 +151,34 @@ export default function CardView() {
   };
 
   const handlePrint = () => {
-    injectPrintStyles(colors.accent);
+    ensurePrintStyles();
+
+    // Mark all sibling elements for hiding during print
+    const cardEl = document.getElementById('card-print-area');
+    if (!cardEl) return;
+
+    const marked: Element[] = [];
+    // Walk up from card to body, hiding siblings at each level
+    let node: HTMLElement | null = cardEl;
+    while (node && node !== document.body) {
+      const parent = node.parentElement;
+      if (parent) {
+        for (const sibling of Array.from(parent.children)) {
+          if (sibling !== node && !sibling.hasAttribute('data-print-hide')) {
+            sibling.setAttribute('data-print-hide', '');
+            marked.push(sibling);
+          }
+        }
+      }
+      node = parent;
+    }
+
     window.print();
+
+    // Clean up after print
+    for (const el of marked) {
+      el.removeAttribute('data-print-hide');
+    }
   };
 
   return (
