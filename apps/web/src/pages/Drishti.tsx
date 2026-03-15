@@ -11,6 +11,7 @@ import DrishtiPrecedents from '@/components/drishti/DrishtiPrecedents';
 import DrishtiSectionHeatmap from '@/components/drishti/DrishtiSectionHeatmap';
 import DrishtiReliefTracker from '@/components/drishti/DrishtiReliefTracker';
 import DrishtiRatioObiter from '@/components/drishti/DrishtiRatioObiter';
+import ShareModal from '@/components/drishti/ShareModal';
 
 // ---------------------------------------------------------------------------
 // Persistence — array-based history (up to 15 items)
@@ -177,6 +178,7 @@ export default function Drishti() {
   const [explainMode, setExplainMode]       = useState<'teen' | 'student' | 'practitioner'>('student');
   const [sidebarOpen, setSidebarOpen]       = useState(false);
   const [inputExpanded, setInputExpanded]   = useState(history.length === 0);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   const tabBarRef   = useRef<HTMLDivElement>(null);
   const contentRef  = useRef<HTMLDivElement>(null);
@@ -497,6 +499,22 @@ export default function Drishti() {
                         </button>
                       );
                     })}
+
+                    {/* Share button */}
+                    {activeItem?.serverId && (
+                      <button
+                        onClick={() => setShowShareModal(true)}
+                        className="ml-auto flex shrink-0 items-center gap-1.5 rounded-xl border border-neon-cyan/20 bg-neon-cyan/5 px-3 py-2 text-xs font-medium text-neon-cyan transition-all hover:bg-neon-cyan/10"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24"
+                          fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                          <polyline points="16 6 12 2 8 6" />
+                          <line x1="12" y1="2" x2="12" y2="15" />
+                        </svg>
+                        Share
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -656,6 +674,16 @@ export default function Drishti() {
           </>
         )}
       </div>
+
+      {/* Share modal */}
+      {showShareModal && activeItem?.serverId && (
+        <ShareModal
+          historyId={activeItem.serverId}
+          caseTitle={analysis?.caseTitle ?? 'Untitled Analysis'}
+          sessionId={getSessionId()}
+          onClose={() => setShowShareModal(false)}
+        />
+      )}
     </div>
   );
 }
