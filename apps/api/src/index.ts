@@ -19,15 +19,14 @@ import { authRoutes } from './routes/auth.js';
 import { sahayakRoutes } from './routes/sahayak.js';
 import { jagrutRoutes } from './routes/jagrut.js';
 import { drishtiRoutes } from './routes/drishti.js';
+import { shareRoutes } from './routes/share.js';
 import { progressRoutes } from './routes/progress.js';
 import { connectDynamo, disconnectDynamo } from './db/dynamodb.js';
-import { configDotenv } from 'dotenv';
 
 // ---------------------------------------------------------------------------
 // Server bootstrap
 // ---------------------------------------------------------------------------
 
-configDotenv();
 async function bootstrap(): Promise<void> {
   const server = Fastify({
     logger: {
@@ -85,6 +84,7 @@ async function bootstrap(): Promise<void> {
   await server.register(sahayakRoutes, { prefix: '/api/v1/sahayak' });
   await server.register(jagrutRoutes, { prefix: '/api/v1/jagrut' });
   await server.register(drishtiRoutes, { prefix: '/api/v1/drishti' });
+  await server.register(shareRoutes, { prefix: '/api/v1/drishti' });
   await server.register(progressRoutes, { prefix: '/api/v1/progress' });
 
   // -------------------------------------------------------------------------
@@ -98,7 +98,19 @@ async function bootstrap(): Promise<void> {
     });
     server.log.info(`NyayaSetu API listening at ${address}`);
   } catch (err) {
-    server.log.error(err);
+    const error = err as { code?: string };
+    if (error.code === 'EADDRINUSE') {
+      server.log.error(
+        {
+          err,
+          host: config.host,
+          port: config.port,
+        },
+        'Port already in use. Stop the existing process or change API_PORT in .env.local.',
+      );
+    } else {
+      server.log.error(err);
+    }
     process.exit(1);
   }
 
