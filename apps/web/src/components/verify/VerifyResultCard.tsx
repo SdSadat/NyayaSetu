@@ -27,7 +27,7 @@ export function VerifyResultCard({ result }: Props) {
   return (
     <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-sm overflow-hidden">
       {/* Header: Score + Doc Info */}
-      <div className="flex flex-col sm:flex-row items-center gap-5 p-5 border-b border-white/[0.06]">
+      <div className="flex flex-col sm:flex-row items-center gap-4 p-4 sm:p-5 border-b border-white/[0.06]">
         <AuthenticityScore score={result.overallScore} verdict={result.verdict} />
 
         <div className="flex-1 text-center sm:text-left">

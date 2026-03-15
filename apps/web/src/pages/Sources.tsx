@@ -73,7 +73,7 @@ const SOURCES = [
 
 export default function Sources() {
   return (
-    <main className="mx-auto max-w-4xl px-4 py-10">
+    <main className="mx-auto max-w-4xl px-3 sm:px-4 py-6 sm:py-10 pb-20 sm:pb-10">
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold">

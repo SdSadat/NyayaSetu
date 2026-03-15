@@ -308,7 +308,7 @@ export default function Learn() {
     <div className="min-h-screen">
 
       {/* ── Hero header ── */}
-      <div className="relative overflow-hidden border-b border-white/6 pb-8 pt-10 px-6">
+      <div className="relative overflow-hidden border-b border-white/6 pb-6 sm:pb-8 pt-6 sm:pt-10 px-4 sm:px-6">
         <div
           className="absolute inset-0 pointer-events-none"
           style={{ background: 'radial-gradient(ellipse 70% 80% at 30% -10%, rgba(245,158,11,0.14), transparent 70%)' }}
@@ -318,16 +318,16 @@ export default function Learn() {
 
             {/* Left: title + search */}
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-4 mb-3">
-                <div className="h-12 w-12 shrink-0 overflow-hidden rounded-2xl">
+              <div className="flex items-center gap-3 sm:gap-4 mb-3">
+                <div className="h-10 w-10 sm:h-12 sm:w-12 shrink-0 overflow-hidden rounded-2xl">
                   <img src="/logos/jagrut-removebg-preview.png" alt="Jagrut" className="h-full w-full object-contain" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold">
+                  <h1 className="text-xl sm:text-2xl font-bold">
                     <span className="text-neon-gold">Jagrut</span>
-                    <span className="ml-2 text-sm font-normal text-white/40">Legal Literacy Engine</span>
+                    <span className="ml-2 text-xs sm:text-sm font-normal text-white/40">Legal Literacy Engine</span>
                   </h1>
-                  <p className="text-sm text-white/40">Bite-sized lessons on your everyday legal rights.</p>
+                  <p className="text-xs sm:text-sm text-white/40">Bite-sized lessons on your everyday legal rights.</p>
                 </div>
               </div>
 
@@ -359,11 +359,11 @@ export default function Learn() {
             </div>
 
             {/* Right: progress overview */}
-            <div className="mt-6 lg:mt-0 flex items-start gap-6 lg:flex-none">
+            <div className="mt-5 lg:mt-0 flex items-start gap-4 sm:gap-6 lg:flex-none">
 
               {/* Large progress ring */}
               <div className="relative flex items-center justify-center flex-none">
-                <svg width={100} height={100} className="-rotate-90">
+                <svg className="w-[72px] h-[72px] sm:w-[100px] sm:h-[100px] -rotate-90" viewBox="0 0 100 100">
                   <circle cx={50} cy={50} r={42} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth={6} />
                   <circle
                     cx={50} cy={50} r={42} fill="none"
@@ -380,15 +380,15 @@ export default function Learn() {
                   </defs>
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-2xl font-bold text-neon-gold">{Math.round(overallPct * 100)}%</span>
-                  <span className="text-[9px] text-white/30 uppercase tracking-wider">Complete</span>
+                  <span className="text-lg sm:text-2xl font-bold text-neon-gold">{Math.round(overallPct * 100)}%</span>
+                  <span className="text-[8px] sm:text-[9px] text-white/30 uppercase tracking-wider">Complete</span>
                 </div>
               </div>
 
               {/* Stats + category chips */}
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 {/* Quick stats */}
-                <div className="flex gap-4 mb-3">
+                <div className="flex gap-3 sm:gap-4 mb-3">
                   <div>
                     <p className="text-lg font-bold text-white">{completedCount}<span className="text-white/25">/{lessons.length}</span></p>
                     <p className="text-[10px] text-white/30 uppercase tracking-wider">Lessons</p>
@@ -436,7 +436,7 @@ export default function Learn() {
       </div>
 
       {/* ── Body ── */}
-      <div className="max-w-5xl mx-auto px-4 py-8">
+      <div className="max-w-5xl mx-auto px-3 sm:px-4 py-6 sm:py-8 pb-20 sm:pb-8">
         {loading ? (
           <div className="flex items-center justify-center py-24">
             <div className="typing-indicator"><span /><span /><span /></div>

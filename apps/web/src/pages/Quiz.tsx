@@ -187,15 +187,15 @@ export default function Quiz() {
     const isNewBest = prevBestRef.current === null || score > prevBestRef.current;
 
     return (
-      <main className="mx-auto max-w-xl px-4 py-10">
-        <Link to={`/learn/${id}`} className="mb-6 inline-flex items-center gap-1.5 text-xs text-gray-500 transition-colors hover:text-gray-300">
+      <main className="mx-auto max-w-xl px-3 sm:px-4 py-6 sm:py-10 pb-20 sm:pb-10">
+        <Link to={`/learn/${id}`} className="mb-4 sm:mb-6 inline-flex items-center gap-1.5 text-xs text-gray-500 transition-colors hover:text-gray-300">
           <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
           Back to lesson
         </Link>
 
         {/* Score hero */}
         <div
-          className="relative mb-8 overflow-hidden rounded-2xl border px-6 py-8 text-center"
+          className="relative mb-6 sm:mb-8 overflow-hidden rounded-2xl border px-4 sm:px-6 py-6 sm:py-8 text-center"
           style={{
             borderColor: isPerfect ? 'rgba(16,185,129,0.3)' : colors.border,
             background:  isPerfect
@@ -293,10 +293,10 @@ export default function Quiz() {
   const correctIndices = questions.map((qu) => qu.correctIndex);
 
   return (
-    <main className="mx-auto max-w-xl px-4 py-10">
+    <main className="mx-auto max-w-xl px-3 sm:px-4 py-6 sm:py-10 pb-20 sm:pb-10">
 
       {/* Back */}
-      <Link to={`/learn/${id}`} className="mb-6 inline-flex items-center gap-1.5 text-xs text-gray-500 transition-colors hover:text-gray-300">
+      <Link to={`/learn/${id}`} className="mb-4 sm:mb-6 inline-flex items-center gap-1.5 text-xs text-gray-500 transition-colors hover:text-gray-300">
         <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
         Back to lesson
       </Link>
@@ -356,7 +356,7 @@ export default function Quiz() {
               type="button"
               onClick={() => handleSelect(i)}
               disabled={answered}
-              className="flex w-full items-center gap-3 rounded-xl border px-4 py-3.5 text-left transition-all duration-150"
+              className="flex w-full items-center gap-3 rounded-xl border px-4 py-4 sm:py-3.5 text-left transition-all duration-150 active:scale-[0.98]"
               style={{ borderColor: borderCol, background: bgCol, cursor: answered ? 'default' : 'pointer' }}
             >
               <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold transition-colors"
@@ -396,14 +396,15 @@ export default function Quiz() {
 
       {/* Footer: hint + button */}
       <div className="flex items-center justify-between">
-        <span className="text-[10px] text-gray-700">1–4 · ↑↓ · Enter</span>
+        <span className="text-[10px] text-gray-700 hidden sm:inline">1–4 · ↑↓ · Enter</span>
+        <span className="sm:hidden" />
 
         {!answered ? (
           <button
             type="button"
             onClick={handleConfirm}
             disabled={selectedOption === null}
-            className="rounded-xl px-6 py-2.5 text-sm font-semibold text-white transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-30"
+            className="rounded-xl px-6 py-3 sm:py-2.5 text-sm font-semibold text-white transition-all duration-150 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30"
             style={{
               background:  selectedOption !== null ? `linear-gradient(135deg,${colors.text}dd,${colors.text}88)` : 'rgba(255,255,255,0.06)',
               boxShadow:   selectedOption !== null ? `0 4px 18px ${colors.text}22` : 'none',

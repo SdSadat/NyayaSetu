@@ -59,17 +59,17 @@ export function ScoreBreakdown({ breakdown, issues, onIssueClick }: Props) {
             {/* Category bar */}
             <button
               onClick={() => setExpanded(isExpanded ? null : cat)}
-              className="w-full flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-white/[0.04] transition-colors"
+              className="w-full flex items-center gap-2 rounded-lg px-2 py-2.5 sm:py-1.5 hover:bg-white/[0.04] transition-colors active:bg-white/[0.06]"
             >
-              <span className="text-sm">{meta.icon}</span>
-              <span className="text-xs text-slate-300 flex-1 text-left">{meta.label}</span>
+              <span className="text-base sm:text-sm">{meta.icon}</span>
+              <span className="text-sm sm:text-xs text-slate-300 flex-1 text-left">{meta.label}</span>
               {catIssues.length > 0 && (
                 <span className="text-[10px] text-slate-500 mr-1">{catIssues.length} issue{catIssues.length > 1 ? 's' : ''}</span>
               )}
-              <span className="text-xs font-semibold w-7 text-right" style={{ color }}>
+              <span className="text-sm sm:text-xs font-semibold w-7 text-right" style={{ color }}>
                 {score}
               </span>
-              <div className="w-20 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+              <div className="w-16 sm:w-20 h-2 sm:h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
                 <div
                   className="h-full rounded-full transition-all duration-700"
                   style={{ width: `${score}%`, background: color }}

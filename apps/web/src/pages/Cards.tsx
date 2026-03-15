@@ -169,7 +169,7 @@ export default function Cards() {
   return (
     <div className="min-h-screen">
       {/* Hero */}
-      <div className="relative overflow-hidden border-b border-white/6 pb-8 pt-10 px-6">
+      <div className="relative overflow-hidden border-b border-white/6 pb-6 sm:pb-8 pt-6 sm:pt-10 px-4 sm:px-6">
         <div
           className="absolute inset-0 pointer-events-none"
           style={{ background: 'radial-gradient(ellipse 60% 80% at 20% -10%, rgba(167,139,250,0.16), transparent 70%)' }}
@@ -182,7 +182,7 @@ export default function Cards() {
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-violet-400/25 bg-violet-400/8 text-violet-300 text-xs font-medium mb-3">
                 <span>📋</span> Know Your Rights
               </div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-1.5">
+              <h1 className="text-xl sm:text-3xl font-bold text-white mb-1.5">
                 Rights Cards
               </h1>
               <p className="text-white/45 text-sm leading-relaxed max-w-md">
@@ -219,7 +219,7 @@ export default function Cards() {
             {/* Right: category mosaic + stats */}
             <div className="mt-6 lg:mt-0 lg:flex-none">
               {/* Category grid */}
-              <div className="grid grid-cols-3 gap-2 mb-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
                 {ALL_CATEGORIES.map((cat) => {
                   const meta = CATEGORY_META[cat];
                   const colors = CARD_CATEGORY_COLORS[cat];
@@ -280,7 +280,7 @@ export default function Cards() {
       </div>
 
       {/* Body */}
-      <div className="max-w-5xl mx-auto px-4 py-8">
+      <div className="max-w-5xl mx-auto px-3 sm:px-4 py-6 sm:py-8 pb-20 sm:pb-8">
         <div className="flex gap-6 items-start">
           {/* Sidebar */}
           <aside className="hidden lg:flex flex-col gap-1 w-52 flex-none lg:sticky lg:top-20 lg:self-start">

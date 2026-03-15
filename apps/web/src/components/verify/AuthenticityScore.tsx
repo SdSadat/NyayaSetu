@@ -35,12 +35,13 @@ export function AuthenticityScore({ score, verdict }: Props) {
   const strokeDashoffset = circumference - (animatedScore / 100) * circumference;
 
   return (
-    <div className="flex flex-col items-center gap-2">
+    <div className="flex flex-col items-center gap-1.5 sm:gap-2">
       <div
         className="relative"
         style={{ filter: `drop-shadow(0 0 12px ${config.glow})` }}
       >
-        <svg width="140" height="140" viewBox="0 0 140 140">
+        {/* Responsive: 100px on mobile, 140px on sm+ */}
+        <svg className="h-[100px] w-[100px] sm:h-[140px] sm:w-[140px]" viewBox="0 0 140 140">
           {/* Background circle */}
           <circle
             cx="70" cy="70" r={radius}
@@ -63,14 +64,14 @@ export function AuthenticityScore({ score, verdict }: Props) {
         </svg>
         {/* Score number */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-3xl font-bold text-white">{animatedScore}</span>
-          <span className="text-[10px] text-slate-400 uppercase tracking-wider">/ 100</span>
+          <span className="text-2xl sm:text-3xl font-bold text-white">{animatedScore}</span>
+          <span className="text-[9px] sm:text-[10px] text-slate-400 uppercase tracking-wider">/ 100</span>
         </div>
       </div>
 
       {/* Verdict label */}
       <div
-        className="rounded-full px-3 py-1 text-xs font-semibold"
+        className="rounded-full px-2.5 sm:px-3 py-0.5 sm:py-1 text-[11px] sm:text-xs font-semibold"
         style={{
           color: config.color,
           background: `${config.color}15`,

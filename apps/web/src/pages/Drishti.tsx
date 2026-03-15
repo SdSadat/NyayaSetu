@@ -410,10 +410,10 @@ export default function Drishti() {
       <div className="relative flex min-w-0 flex-1 flex-col">
 
         {/* Mobile top bar */}
-        <div className="flex items-center gap-3 border-b border-white/[0.05] px-4 py-3 sm:hidden">
+        <div className="flex items-center gap-3 border-b border-white/[0.05] px-3 py-2.5 sm:hidden">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/[0.07] text-gray-500 hover:text-gray-300"
+            className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.07] text-gray-500 hover:text-gray-300 active:bg-white/[0.06]"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24"
               fill="none" stroke="currentColor" strokeWidth={2}>
@@ -486,10 +486,10 @@ export default function Drishti() {
                 )}
 
                 {/* Sticky tab bar */}
-                <div className="sticky top-0 z-20 -mx-4 px-4 pb-0 pt-2">
+                <div className="sticky top-0 z-20 -mx-4 px-2 sm:px-4 pb-0 pt-2">
                   <div
                     ref={tabBarRef}
-                    className="flex gap-0.5 overflow-x-auto rounded-2xl border border-white/[0.08] bg-[rgba(3,7,18,0.82)] p-1.5 backdrop-blur-xl no-scrollbar"
+                    className="flex gap-0.5 overflow-x-auto rounded-2xl border border-white/[0.08] bg-[rgba(3,7,18,0.82)] p-1 sm:p-1.5 backdrop-blur-xl no-scrollbar"
                   >
                     {TABS.map(tab => {
                       const count = tab.count?.(analysis);
@@ -499,13 +499,13 @@ export default function Drishti() {
                           key={tab.id}
                           data-tab={tab.id}
                           onClick={() => handleTabChange(tab.id)}
-                          className={`flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-medium transition-all duration-200 ${
+                          className={`flex shrink-0 items-center gap-1 sm:gap-1.5 rounded-xl px-2.5 sm:px-3 py-2 text-[11px] sm:text-xs font-medium transition-all duration-200 active:scale-95 ${
                             isActive
                               ? 'bg-neon-purple/20 text-neon-purple shadow-[0_0_12px_rgba(168,85,247,0.25)]'
                               : 'text-gray-500 hover:bg-white/[0.04] hover:text-gray-300'
                           }`}
                         >
-                          <span className={isActive ? 'text-neon-purple' : 'text-gray-600'}>
+                          <span className={`hidden sm:inline ${isActive ? 'text-neon-purple' : 'text-gray-600'}`}>
                             <Ico d={tab.svgPath} />
                           </span>
                           <span>{tab.label}</span>
@@ -576,7 +576,7 @@ export default function Drishti() {
                 <p className="mt-2 max-w-sm text-sm text-gray-600">
                   Paste a court judgment, order, or legal document in the input below.
                 </p>
-                <div className="mt-8 grid grid-cols-2 gap-2 sm:grid-cols-3 max-w-md">
+                <div className="mt-6 sm:mt-8 grid grid-cols-2 gap-2 sm:grid-cols-3 max-w-md">
                   {[
                     { label: 'Timeline',       desc: 'Chronological events',      color: 'cyan'   },
                     { label: 'Issue Tree',      desc: 'Hierarchical questions',    color: 'purple' },

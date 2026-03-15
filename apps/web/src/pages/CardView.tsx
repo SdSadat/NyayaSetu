@@ -182,9 +182,9 @@ export default function CardView() {
   };
 
   return (
-    <div className="min-h-screen pb-16">
+    <div className="min-h-screen pb-20 sm:pb-16">
       {/* Back breadcrumb */}
-      <div className="max-w-5xl mx-auto px-4 pt-6 pb-4">
+      <div className="max-w-5xl mx-auto px-3 sm:px-4 pt-4 sm:pt-6 pb-3 sm:pb-4">
         <Link
           to="/cards"
           className="inline-flex items-center gap-2 text-sm text-white/40 hover:text-white/70 transition-colors"
@@ -194,7 +194,7 @@ export default function CardView() {
       </div>
 
       {/* Content grid */}
-      <div className="max-w-5xl mx-auto px-4">
+      <div className="max-w-5xl mx-auto px-3 sm:px-4">
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
           {/* Card preview (60%) */}
           <div className="lg:col-span-3">

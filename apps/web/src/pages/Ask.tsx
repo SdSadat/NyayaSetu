@@ -227,7 +227,7 @@ function EmptyState({ onExample }: { onExample: (q: string) => void }) {
         information from Indian law.
       </p>
 
-      <div className="mt-8 grid w-full max-w-md grid-cols-1 gap-2 sm:grid-cols-2">
+      <div className="mt-6 sm:mt-8 grid w-full max-w-md grid-cols-1 gap-2 sm:grid-cols-2">
         {EXAMPLE_QUERIES.map(({ q, icon }) => (
           <button
             key={q}
@@ -381,42 +381,53 @@ export default function Ask() {
   const isEmpty = messages.length === 0 && !loading;
 
   return (
-    <main className="mx-auto flex h-full max-w-5xl flex-col px-4">
+    <main className="mx-auto flex h-full max-w-5xl flex-col px-3 sm:px-4">
 
       {/* ── Compact Header ── */}
-      <div className="flex shrink-0 items-center justify-between py-4">
-        <div className="flex items-center gap-3">
-          <div className="h-9 w-9 shrink-0 overflow-hidden rounded-xl border border-neon-cyan/20"
-            style={{ boxShadow: '0 0 12px rgba(6,214,221,0.12)' }}>
-            <img src="/logos/sahayak-removebg-preview.png" alt="Sahayak"
-              className="h-full w-full object-contain" />
+      <div className="shrink-0 py-3 sm:py-4">
+        {/* Row 1: Logo + title + clear button */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="h-8 w-8 sm:h-9 sm:w-9 shrink-0 overflow-hidden rounded-xl border border-neon-cyan/20"
+              style={{ boxShadow: '0 0 12px rgba(6,214,221,0.12)' }}>
+              <img src="/logos/sahayak-removebg-preview.png" alt="Sahayak"
+                className="h-full w-full object-contain" />
+            </div>
+            <div>
+              <h1 className="text-sm sm:text-base font-bold text-neon-cyan leading-none">Sahayak</h1>
+              <p className="mt-0.5 text-[10px] sm:text-[11px] text-gray-500 hidden sm:block">
+                Indian legal information · AI-powered · Cited sources
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-base font-bold text-neon-cyan leading-none">Sahayak</h1>
-            <p className="mt-0.5 text-[11px] text-gray-500">
-              Indian legal information · AI-powered · Cited sources
-            </p>
+
+          <div className="flex items-center gap-2">
+            {/* Mode toggle visible on sm+ inline, on mobile in row 2 */}
+            <div className="hidden sm:block">
+              <ModeToggle mode={mode} onChange={setMode} />
+            </div>
+
+            {!isEmpty && (
+              <button
+                onClick={clearChat}
+                className="flex items-center gap-1.5 rounded-lg border border-white/[0.07] bg-white/[0.03] px-2.5 py-1.5 text-xs text-gray-500 transition-all hover:border-red-500/20 hover:bg-red-500/5 hover:text-red-400 active:scale-95"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none"
+                  viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6l-1 14H6L5 6" />
+                  <path d="M10 11v6M14 11v6" />
+                  <path d="M9 6V4h6v2" />
+                </svg>
+                <span className="hidden sm:inline">Clear</span>
+              </button>
+            )}
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        {/* Row 2: Mode toggle on mobile only */}
+        <div className="mt-2.5 sm:hidden">
           <ModeToggle mode={mode} onChange={setMode} />
-
-        {!isEmpty && (
-          <button
-            onClick={clearChat}
-            className="flex items-center gap-1.5 rounded-lg border border-white/[0.07] bg-white/[0.03] px-3 py-1.5 text-xs text-gray-500 transition-all hover:border-red-500/20 hover:bg-red-500/5 hover:text-red-400"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none"
-              viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <polyline points="3 6 5 6 21 6" />
-              <path d="M19 6l-1 14H6L5 6" />
-              <path d="M10 11v6M14 11v6" />
-              <path d="M9 6V4h6v2" />
-            </svg>
-            Clear
-          </button>
-        )}
         </div>
       </div>
 
@@ -458,7 +469,7 @@ export default function Ask() {
       </div>
 
       {/* ── Input Bar ── */}
-      <div className="shrink-0 border-t border-white/[0.06] py-4">
+      <div className="shrink-0 border-t border-white/[0.06] py-3 sm:py-4 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] sm:pb-4">
         {mode === 'verify' ? (
           <div className="pb-2">
             <FileDropZone onSubmit={handleVerifySubmit} disabled={loading} />
@@ -488,7 +499,7 @@ export default function Ask() {
             value={text}
             onChange={(e) => handleTextInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Describe your legal situation… (Enter to send, Shift+Enter for new line)"
+            placeholder="Describe your legal situation…"
             disabled={loading}
             className="w-full resize-none bg-transparent px-4 pt-3.5 pb-2 text-sm text-white placeholder-gray-500 outline-none"
             style={{ minHeight: 44, maxHeight: 160 }}
@@ -520,7 +531,7 @@ export default function Ask() {
               type="button"
               onClick={submitQuery}
               disabled={loading || !text.trim()}
-              className="flex h-8 w-8 items-center justify-center rounded-xl transition-all disabled:opacity-40"
+              className="flex h-9 w-9 sm:h-8 sm:w-8 items-center justify-center rounded-xl transition-all active:scale-90 disabled:opacity-40"
               style={{
                 background: text.trim() && !loading
                   ? 'linear-gradient(135deg, #06d6dd, #3b82f6)'
