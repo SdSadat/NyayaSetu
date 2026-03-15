@@ -467,6 +467,24 @@ export default function Drishti() {
             {/* ── Analysis view ── */}
             {analysis && !loading && (
               <>
+                {/* Share button — floating top-right */}
+                {activeItem?.serverId && (
+                  <div className="flex justify-end mb-3">
+                    <button
+                      onClick={() => setShowShareModal(true)}
+                      className="flex items-center gap-2 rounded-xl border border-neon-cyan/20 bg-neon-cyan/5 px-4 py-2 text-sm font-medium text-neon-cyan transition-all hover:bg-neon-cyan/10 hover:border-neon-cyan/30 hover:shadow-[0_0_16px_rgba(6,182,212,0.15)]"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                        <polyline points="16 6 12 2 8 6" />
+                        <line x1="12" y1="2" x2="12" y2="15" />
+                      </svg>
+                      Share Report
+                    </button>
+                  </div>
+                )}
+
                 {/* Sticky tab bar */}
                 <div className="sticky top-0 z-20 -mx-4 px-4 pb-0 pt-2">
                   <div
@@ -500,21 +518,6 @@ export default function Drishti() {
                       );
                     })}
 
-                    {/* Share button */}
-                    {activeItem?.serverId && (
-                      <button
-                        onClick={() => setShowShareModal(true)}
-                        className="ml-auto flex shrink-0 items-center gap-1.5 rounded-xl border border-neon-cyan/20 bg-neon-cyan/5 px-3 py-2 text-xs font-medium text-neon-cyan transition-all hover:bg-neon-cyan/10"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24"
-                          fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-                          <polyline points="16 6 12 2 8 6" />
-                          <line x1="12" y1="2" x2="12" y2="15" />
-                        </svg>
-                        Share
-                      </button>
-                    )}
                   </div>
                 </div>
 

@@ -161,7 +161,7 @@ export class NovaLLM implements LLMProvider {
         },
       ],
       inferenceConfig: {
-        maxTokens: 5000,
+        maxTokens: 10000,
         temperature: 0.1,
         topP: 0.9,
       },
@@ -184,7 +184,14 @@ export class NovaLLM implements LLMProvider {
       throw new Error('Nova returned no content in response.');
     }
 
-    return parts.map((p) => p.text).join('');
+    const text = parts.map((p) => p.text).join('');
+
+    // Check if output was truncated (hit token limit)
+    if (responseBody.stopReason === 'max_tokens') {
+      console.warn('[nova-llm] JSON response was truncated (hit max_tokens). Output length:', text.length);
+    }
+
+    return text;
   }
 
   /**

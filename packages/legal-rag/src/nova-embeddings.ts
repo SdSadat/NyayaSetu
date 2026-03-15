@@ -30,6 +30,14 @@ export interface NovaEmbedderConfig {
   modelId?: string;
   /** Number of texts to embed per batch (to avoid timeouts). */
   batchSize?: number;
+  /** Maximum retry attempts for transient throttling or service errors. */
+  maxRetries?: number;
+  /** Initial retry delay in milliseconds. */
+  retryBaseDelayMs?: number;
+  /** Maximum retry delay in milliseconds. */
+  retryMaxDelayMs?: number;
+  /** Delay between individual embedding requests in milliseconds. */
+  interRequestDelayMs?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -78,6 +86,10 @@ export function createNovaEmbedder(config: NovaEmbedderConfig): EmbeddingProvide
   const dimension = config.dimension ?? 1024;
   const modelId = config.modelId ?? 'amazon.nova-embed-multimodal-v1:0';
   const batchSize = config.batchSize ?? 10;
+  const maxRetries = config.maxRetries ?? 5;
+  const retryBaseDelayMs = config.retryBaseDelayMs ?? 500;
+  const retryMaxDelayMs = config.retryMaxDelayMs ?? 10_000;
+  const interRequestDelayMs = config.interRequestDelayMs ?? 125;
 
   const client = new BedrockRuntimeClient({
     region: config.region,
@@ -124,6 +136,61 @@ export function createNovaEmbedder(config: NovaEmbedderConfig): EmbeddingProvide
     return responseBody.embeddings[0].embedding;
   }
 
+  function isRetryableError(error: unknown): boolean {
+    const e = error as {
+      name?: string;
+      code?: string;
+      message?: string;
+      $metadata?: { httpStatusCode?: number };
+    };
+
+    const statusCode = e.$metadata?.httpStatusCode;
+    if (statusCode === 429 || statusCode === 500 || statusCode === 502 || statusCode === 503 || statusCode === 504) {
+      return true;
+    }
+
+    const joined = `${e.name ?? ''} ${e.code ?? ''} ${e.message ?? ''}`.toLowerCase();
+    return (
+      joined.includes('too many requests') ||
+      joined.includes('throttl') ||
+      joined.includes('rate exceeded') ||
+      joined.includes('service unavailable') ||
+      joined.includes('timeout')
+    );
+  }
+
+  function backoffDelayMs(attempt: number): number {
+    const expDelay = Math.min(retryMaxDelayMs, retryBaseDelayMs * 2 ** attempt);
+    const jitter = Math.floor(Math.random() * retryBaseDelayMs);
+    return expDelay + jitter;
+  }
+
+  async function sleep(ms: number): Promise<void> {
+    if (ms <= 0) return;
+    await new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  async function embedSingleWithRetry(text: string): Promise<number[]> {
+    let attempt = 0;
+
+    while (true) {
+      try {
+        return await embedSingle(text);
+      } catch (error) {
+        if (!isRetryableError(error) || attempt >= maxRetries) {
+          throw error;
+        }
+
+        const delayMs = backoffDelayMs(attempt);
+        console.warn(
+          `[nova-embed] Retrying after transient error (${attempt + 1}/${maxRetries}) in ${delayMs}ms.`,
+        );
+        await sleep(delayMs);
+        attempt += 1;
+      }
+    }
+  }
+
   return {
     async embed(texts: string[]): Promise<number[][]> {
       if (texts.length === 0) return [];
@@ -139,11 +206,18 @@ export function createNovaEmbedder(config: NovaEmbedderConfig): EmbeddingProvide
           );
         }
 
-        // Nova embedding API processes one text at a time
-        const batchResults = await Promise.all(
-          batch.map((text) => embedSingle(text)),
-        );
-        allEmbeddings.push(...batchResults);
+        // Nova embedding API processes one text at a time; serialize requests
+        // to reduce throttling and apply retries for transient failures.
+        for (let j = 0; j < batch.length; j += 1) {
+          const embedding = await embedSingleWithRetry(batch[j]);
+          allEmbeddings.push(embedding);
+
+          const isLastInBatch = j === batch.length - 1;
+          const isLastOverall = i + j >= texts.length - 1;
+          if (!isLastInBatch && !isLastOverall) {
+            await sleep(interRequestDelayMs);
+          }
+        }
       }
 
       return allEmbeddings;
