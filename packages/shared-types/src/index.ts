@@ -332,6 +332,66 @@ export interface DrishtiAnalysis {
   caveats: string[];
 }
 
+// ---------------------------------------------------------------------------
+// Drishti Shareable Reports
+// ---------------------------------------------------------------------------
+
+export type ShareAccessLevel = 'public' | 'password';
+
+export type ShareExpiry = '24h' | '7d' | '30d' | null;
+
+export interface ShareRecord {
+  shareId: string;
+  ownerId: string;
+  historyId: string;
+  accessLevel: ShareAccessLevel;
+  caseTitle: string;
+  analysis: DrishtiAnalysis;
+  documentText?: string;
+  createdAt: string;
+  expiresAt?: number;
+  viewCount: number;
+  revoked: boolean;
+}
+
+/** Lightweight share info returned when listing shares. */
+export interface ShareListItem {
+  shareId: string;
+  caseTitle: string;
+  accessLevel: ShareAccessLevel;
+  viewCount: number;
+  createdAt: string;
+  expiresAt: number | null;
+  revoked: boolean;
+}
+
+/** Response when viewing a public shared report. */
+export interface SharedReportSuccess {
+  type: 'success';
+  caseTitle: string;
+  analysis: DrishtiAnalysis;
+  documentText?: string;
+  sharedAt: string;
+  expiresAt: string | null;
+}
+
+/** Response when a shared report requires a password. */
+export interface SharedReportLocked {
+  type: 'password-required';
+  caseTitle: string;
+}
+
+/** Response when a shared report is expired, revoked, or not found. */
+export interface SharedReportNotFound {
+  type: 'not-found';
+  message: string;
+}
+
+export type SharedReportResponse =
+  | SharedReportSuccess
+  | SharedReportLocked
+  | SharedReportNotFound;
+
 // Keep CaseBrief as a legacy alias so existing imports don't break
 /** @deprecated Use DrishtiAnalysis instead */
 export type CaseBrief = DrishtiAnalysis;
