@@ -22,3 +22,8 @@ variable "dynamodb_progress_arn" {
   description = "ARN of the User Progress DynamoDB table"
   type        = string
 }
+
+variable "dynamodb_shares_arn" {
+  description = "ARN of the Shares DynamoDB table"
+  type        = string
+}

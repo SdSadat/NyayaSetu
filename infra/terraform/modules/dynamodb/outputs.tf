@@ -27,3 +27,13 @@ output "progress_table_arn" {
   description = "User progress table ARN"
   value       = aws_dynamodb_table.user_progress.arn
 }
+
+output "shares_table_name" {
+  description = "Shares table name"
+  value       = aws_dynamodb_table.shares.name
+}
+
+output "shares_table_arn" {
+  description = "Shares table ARN"
+  value       = aws_dynamodb_table.shares.arn
+}
