@@ -10,7 +10,7 @@ import { DEFAULT_SAFETY_CONFIG } from '@nyayasetu/shared-types';
 import type { SafetyConfig } from '@nyayasetu/shared-types';
 import { configDotenv } from 'dotenv';
 
-configDotenv();
+configDotenv({ path: ['.env.local', '.env'] });
 
 // ---------------------------------------------------------------------------
 // Configuration interface
@@ -65,6 +65,8 @@ export interface AppConfig {
     usersTableName: string;
     /** User progress table name. */
     progressTableName: string;
+    /** Shareable reports table name. */
+    sharesTableName: string;
     /** Days before a history record is automatically deleted (TTL). */
     historyTtlDays: number;
   };
@@ -136,6 +138,7 @@ export const config: AppConfig = {
     tableName: envString('DYNAMODB_TABLE_NAME', 'NyayaSetu-DrishtiHistory'),
     usersTableName: envString('DYNAMODB_USERS_TABLE', 'NyayaSetu-Users'),
     progressTableName: envString('DYNAMODB_PROGRESS_TABLE', 'NyayaSetu-UserProgress'),
+    sharesTableName: envString('DYNAMODB_SHARES_TABLE', 'NyayaSetu-Shares'),
     historyTtlDays: envNumber('DYNAMODB_HISTORY_TTL_DAYS', 30),
   },
 

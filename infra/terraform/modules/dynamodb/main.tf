@@ -82,3 +82,47 @@ resource "aws_dynamodb_table" "user_progress" {
     Name = "NyayaSetu-UserProgress-${var.environment}"
   }
 }
+
+# --- Shares Table ---
+# PK: shareId (String), GSI: ownerId (PK) + createdAt (SK), TTL: expiresAt
+# Stores shareable Drishti analysis reports with optional password protection
+resource "aws_dynamodb_table" "shares" {
+  name         = "NyayaSetu-Shares-${var.environment}"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "shareId"
+
+  attribute {
+    name = "shareId"
+    type = "S"
+  }
+
+  attribute {
+    name = "ownerId"
+    type = "S"
+  }
+
+  attribute {
+    name = "createdAt"
+    type = "S"
+  }
+
+  global_secondary_index {
+    name            = "ownerId-createdAt-index"
+    hash_key        = "ownerId"
+    range_key       = "createdAt"
+    projection_type = "ALL"
+  }
+
+  ttl {
+    attribute_name = "expiresAt"
+    enabled        = true
+  }
+
+  point_in_time_recovery {
+    enabled = var.environment == "prod"
+  }
+
+  tags = {
+    Name = "NyayaSetu-Shares-${var.environment}"
+  }
+}

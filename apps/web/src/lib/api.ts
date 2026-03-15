@@ -1,4 +1,4 @@
-import type { SahayakResponse, LessonCard, QuizQuestion, DrishtiAnalysis, RightsCard, RightsCardCategory, RightsCardVariant, DocumentVerifyResult } from '@nyayasetu/shared-types';
+import type { SahayakResponse, LessonCard, QuizQuestion, DrishtiAnalysis, RightsCard, RightsCardCategory, RightsCardVariant, DocumentVerifyResult, ShareAccessLevel, ShareExpiry, ShareListItem, SharedReportResponse } from '@nyayasetu/shared-types';
 import { getToken } from './auth';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
@@ -306,4 +306,68 @@ export async function deleteDrishtiHistoryItem(id: string, sessionId: string): P
   } catch {
     // Non-fatal — local state is already updated by the caller
   }
+}
+
+// ---------------------------------------------------------------------------
+// Drishti — Shareable Reports
+// ---------------------------------------------------------------------------
+
+export interface CreateShareParams {
+  historyId: string;
+  sessionId: string;
+  accessLevel: ShareAccessLevel;
+  password?: string;
+  expiresIn?: ShareExpiry;
+  includeDocument?: boolean;
+}
+
+export interface CreateShareResult {
+  shareId: string;
+  shareUrl: string;
+}
+
+export function createShareLink(params: CreateShareParams): Promise<CreateShareResult> {
+  return request<CreateShareResult>('/api/v1/drishti/share', {
+    method: 'POST',
+    body: JSON.stringify(params),
+  });
+}
+
+export function getSharedReport(shareId: string): Promise<SharedReportResponse> {
+  return request<SharedReportResponse>(
+    `/api/v1/drishti/shared/${encodeURIComponent(shareId)}`,
+  );
+}
+
+export function unlockSharedReport(
+  shareId: string,
+  password: string,
+): Promise<SharedReportResponse> {
+  return request<SharedReportResponse>(
+    `/api/v1/drishti/shared/${encodeURIComponent(shareId)}/unlock`,
+    { method: 'POST', body: JSON.stringify({ password }) },
+  );
+}
+
+export async function listMyShares(
+  sessionId: string,
+): Promise<ShareListItem[]> {
+  try {
+    const res = await request<{ shares: ShareListItem[] }>(
+      `/api/v1/drishti/shares?sessionId=${encodeURIComponent(sessionId)}`,
+    );
+    return res.shares;
+  } catch {
+    return [];
+  }
+}
+
+export async function revokeShareLink(
+  shareId: string,
+  sessionId: string,
+): Promise<void> {
+  await request<{ success: boolean }>(
+    `/api/v1/drishti/share/${encodeURIComponent(shareId)}?sessionId=${encodeURIComponent(sessionId)}`,
+    { method: 'DELETE' },
+  );
 }

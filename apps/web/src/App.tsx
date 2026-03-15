@@ -5,6 +5,7 @@ import Learn from './pages/Learn';
 import LessonView from './pages/LessonView';
 import Quiz from './pages/Quiz';
 import Drishti from './pages/Drishti';
+import SharedReport from './pages/SharedReport';
 import Sources from './pages/Sources';
 import Cards from './pages/Cards';
 import CardView from './pages/CardView';
@@ -431,6 +432,7 @@ export default function App() {
           <Route path="/cards" element={<Cards />} />
           <Route path="/cards/:id" element={<CardView />} />
           <Route path="/drishti" element={<Drishti />} />
+          <Route path="/drishti/s/:shareId" element={<SharedReport />} />
           <Route path="/sources" element={<Sources />} />
         </Routes>
       </div>

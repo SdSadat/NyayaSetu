@@ -17,6 +17,11 @@ output "dynamodb_progress_table" {
   value       = module.dynamodb.progress_table_name
 }
 
+output "dynamodb_shares_table" {
+  description = "DynamoDB table name for shareable reports"
+  value       = module.dynamodb.shares_table_name
+}
+
 output "s3_legal_docs_bucket" {
   description = "S3 bucket for legal documents (Bedrock KB data source)"
   value       = module.s3.bucket_name

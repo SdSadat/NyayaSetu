@@ -52,7 +52,9 @@ resource "aws_iam_role_policy" "app_dynamodb" {
         Resource = [
           var.dynamodb_history_arn,
           var.dynamodb_users_arn,
-          var.dynamodb_progress_arn
+          var.dynamodb_progress_arn,
+          var.dynamodb_shares_arn,
+          "${var.dynamodb_shares_arn}/index/*"
         ]
       }
     ]

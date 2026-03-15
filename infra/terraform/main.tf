@@ -63,6 +63,7 @@ module "iam" {
   dynamodb_history_arn   = module.dynamodb.history_table_arn
   dynamodb_users_arn     = module.dynamodb.users_table_arn
   dynamodb_progress_arn  = module.dynamodb.progress_table_arn
+  dynamodb_shares_arn    = module.dynamodb.shares_table_arn
 }
 
 # NOTE: Bedrock Knowledge Base module removed — OpenSearch Serverless
