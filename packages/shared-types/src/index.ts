@@ -100,6 +100,29 @@ export interface ExtractedEntities {
 }
 
 // ---------------------------------------------------------------------------
+// Conversation (Sahayak Multi-turn)
+// ---------------------------------------------------------------------------
+
+/** A single turn in a Sahayak conversation (user question or assistant answer). */
+export interface ConversationTurn {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: string;
+  /** Section references cited in this turn (assistant turns only). */
+  sources?: string[];
+  /** Jurisdiction determined for this turn (assistant turns only). */
+  jurisdiction?: Jurisdiction;
+}
+
+/** Whether the current query is a follow-up or a new topic. */
+export type ConversationIntentType = 'follow-up' | 'new-topic' | 'clarification';
+
+export interface ConversationIntent {
+  type: ConversationIntentType;
+  confidence: number;
+}
+
+// ---------------------------------------------------------------------------
 // Query & Response (Sahayak Pipeline)
 // ---------------------------------------------------------------------------
 
@@ -123,6 +146,10 @@ export interface LegalResponse {
   certaintyLevel: CertaintyLevel;
   jurisdiction: Jurisdiction;
   disclaimer: string;
+  /** Whether this response was treated as a follow-up to a previous query. */
+  isFollowUp?: boolean;
+  /** The expanded query used for retrieval (if the original was rewritten). */
+  rewrittenQuery?: string;
 }
 
 /** A refusal response when the system cannot safely answer. */

@@ -5,6 +5,12 @@
 // The response-generator uses this to abstract over the concrete provider.
 // =============================================================================
 
+/** A single message in a multi-turn conversation. */
+export interface LLMMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 /**
  * A provider that can generate text from system + user prompts.
  */
@@ -13,6 +19,13 @@ export interface LLMProvider {
    * Generate a text response given system and user prompts.
    */
   generate(systemPrompt: string, userPrompt: string): Promise<string>;
+
+  /**
+   * Generate a text response from a multi-turn conversation.
+   * The messages array contains alternating user/assistant turns,
+   * with the final message being the current user query.
+   */
+  generateWithMessages(systemPrompt: string, messages: LLMMessage[]): Promise<string>;
 
   /**
    * Generate a guaranteed JSON response. The implementation should use

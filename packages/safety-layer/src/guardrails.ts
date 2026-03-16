@@ -59,8 +59,6 @@ export function calculateCertaintyLevel(score: CertaintyScore): CertaintyLevel {
 /**
  * Strip detected advisory phrases from the response text.
  *
- * Replacement is case-insensitive and replaces each occurrence with
- * "[information removed]" so the reader is aware content was redacted.
  */
 export function stripAdvisoryLanguage(
   text: string,
@@ -68,11 +66,38 @@ export function stripAdvisoryLanguage(
 ): string {
   let cleaned = text;
   for (const phrase of phrases) {
-    const regex = new RegExp(phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
-    cleaned = cleaned.replace(regex, '[information removed]');
+    const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`\\b${escaped}\\b`, 'gi');
+
+    // Rephrase common patterns instead of blanking them
+    const lower = phrase.toLowerCase();
+    const replacement = REPHRASE_MAP[lower];
+    if (replacement !== undefined) {
+      cleaned = cleaned.replace(regex, replacement);
+    }
   }
   return cleaned;
 }
+
+/** Map advisory phrases to neutral informational replacements. */
+const REPHRASE_MAP: Record<string, string> = {
+  'you should': 'a person in this situation may',
+  'you must': 'the law requires that a person',
+  'you need to': 'it may be necessary to',
+  'you have to': 'a person is required to',
+  'you ought to': 'it may be relevant to',
+  'you are required to': 'a person is required to',
+  'you are advised to': 'it may be relevant to',
+  'i advise you': 'the legal position indicates',
+  'i recommend': 'the relevant provision states',
+  'i suggest': 'one option under the law is',
+  'hire a lawyer': 'consult a qualified legal professional',
+  'get a lawyer': 'consult a qualified legal professional',
+  'make sure to': 'it is important that',
+  'ensure that you': 'the law requires that',
+  "don't forget to": 'it is important to note that',
+  'do not forget to': 'it is important to note that',
+};
 
 /**
  * Build the standard de-escalation safety note that is appended to every

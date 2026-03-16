@@ -58,9 +58,18 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 // Sahayak
 // ---------------------------------------------------------------------------
 
+/** A single turn in conversation history sent to the API. */
+export interface ConversationTurnParam {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp?: string;
+  sources?: string[];
+}
+
 export interface QueryLawParams {
   text: string;
   state?: string;
+  conversationHistory?: ConversationTurnParam[];
 }
 
 export function queryLaw(params: QueryLawParams): Promise<SahayakResponse> {
