@@ -207,10 +207,10 @@ export default function LessonView() {
         />
       </div>
 
-      <main className="mx-auto max-w-2xl px-4 pb-16 pt-8">
+      <main className="mx-auto max-w-2xl px-3 sm:px-4 pb-20 sm:pb-16 pt-6 sm:pt-8">
 
         {/* Back */}
-        <Link to="/learn" className="mb-8 inline-flex items-center gap-1.5 text-xs text-gray-500 transition-colors hover:text-gray-300">
+        <Link to="/learn" className="mb-5 sm:mb-8 inline-flex items-center gap-1.5 text-xs text-gray-500 transition-colors hover:text-gray-300">
           <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
             <polyline points="15 18 9 12 15 6" />
           </svg>
@@ -218,7 +218,7 @@ export default function LessonView() {
         </Link>
 
         {/* ── Hero section ── */}
-        <div className="relative mb-8 overflow-hidden rounded-2xl border px-6 py-7"
+        <div className="relative mb-6 sm:mb-8 overflow-hidden rounded-2xl border px-4 sm:px-6 py-5 sm:py-7"
           style={{ borderColor: colors.border, background: `radial-gradient(ellipse 80% 60% at 50% 0%, ${colors.glow}, transparent 70%)` }}>
 
           {/* Meta row */}
@@ -252,7 +252,7 @@ export default function LessonView() {
           </div>
 
           {/* Title */}
-          <h1 className="text-2xl font-bold leading-snug text-white sm:text-3xl">{lesson.title}</h1>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold leading-snug text-white">{lesson.title}</h1>
 
           {/* Act · Section */}
           <p className="mt-3 text-xs font-mono text-gray-500">{lesson.act} · {lesson.section}</p>
@@ -262,12 +262,12 @@ export default function LessonView() {
         </div>
 
         {/* ── Lesson content ── */}
-        <article className="mb-8 space-y-4 rounded-2xl border border-white/[0.05] bg-white/[0.015] px-6 py-7">
+        <article className="mb-6 sm:mb-8 space-y-4 rounded-2xl border border-white/[0.05] bg-white/[0.015] px-4 sm:px-6 py-5 sm:py-7">
           {renderContent(lesson.content, colors.text)}
         </article>
 
         {/* ── Key Takeaways ── */}
-        <div className="mb-8 rounded-2xl border px-6 py-6" style={{ borderColor: colors.border, background: colors.bg }}>
+        <div className="mb-6 sm:mb-8 rounded-2xl border px-4 sm:px-6 py-5 sm:py-6" style={{ borderColor: colors.border, background: colors.bg }}>
           <div className="mb-4 flex items-center gap-2">
             <div className="flex h-6 w-6 items-center justify-center rounded-lg" style={{ background: `${colors.text}20` }}>
               <svg className="h-3.5 w-3.5" style={{ color: colors.text }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">

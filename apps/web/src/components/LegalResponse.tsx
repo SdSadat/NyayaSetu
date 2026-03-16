@@ -251,23 +251,23 @@ function PipelineSteps() {
   ];
 
   return (
-    <div className="flex items-center justify-center gap-1 sm:justify-start">
+    <div className="flex items-center justify-start gap-1 overflow-x-auto no-scrollbar">
       {steps.map((step, i) => (
-        <div key={step.label} className="flex items-center gap-1">
+        <div key={step.label} className="flex shrink-0 items-center gap-1">
           <div
-            className="flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[10px] font-semibold uppercase tracking-wider"
+            className="flex h-6 sm:h-7 items-center gap-1 sm:gap-1.5 rounded-full border px-2 sm:px-2.5 text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider"
             style={{
               borderColor: 'rgba(6, 214, 221, 0.2)',
               background: 'rgba(6, 214, 221, 0.06)',
               color: '#06d6dd',
             }}
           >
-            <span className="font-mono text-[11px]">{step.icon}</span>
+            <span className="font-mono text-[10px] sm:text-[11px]">{step.icon}</span>
             <span className="hidden sm:inline">{step.label}</span>
           </div>
           {i < steps.length - 1 && (
             <svg
-              className="h-3 w-3 text-gray-600"
+              className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-gray-600"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -503,8 +503,8 @@ export default function LegalResponseCard({ response }: Props) {
       <PipelineSteps />
 
       {/* Header bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3">
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
           <CertaintyBadge
             level={response.certaintyLevel}
             score={response.certaintyScore}

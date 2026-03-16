@@ -11,6 +11,8 @@
   * {
     scrollbar-width: thin;
     scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+    /* Prevent 300ms tap delay on mobile */
+    -webkit-tap-highlight-color: transparent;
   }
 
   *::-webkit-scrollbar {
@@ -26,9 +28,16 @@
     border-radius: 3px;
   }
 
+  html {
+    /* Respect safe areas for notched phones */
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
+  }
+
   body {
     @apply min-h-screen font-sans;
     background: #030712;
+    /* Prevent rubber-band overscroll on iOS */
+    overscroll-behavior-y: none;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -47,7 +56,7 @@
 
 @layer components {
   .glass-card {
-    @apply relative rounded-2xl border border-white/[0.08] bg-white/[0.04] p-6 backdrop-blur-xl;
+    @apply relative rounded-2xl border border-white/[0.08] bg-white/[0.04] p-4 sm:p-6 backdrop-blur-xl;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
 
@@ -86,7 +95,7 @@
   }
 
   .btn-primary {
-    @apply relative inline-flex items-center justify-center rounded-xl px-6 py-3 text-sm font-semibold text-white transition-all duration-300;
+    @apply relative inline-flex items-center justify-center rounded-xl px-5 py-2.5 sm:px-6 sm:py-3 text-sm font-semibold text-white transition-all duration-300;
     background: linear-gradient(135deg, #06d6dd, #3b82f6);
     box-shadow: 0 4px 15px rgba(6, 214, 221, 0.2);
   }
@@ -97,7 +106,7 @@
   }
 
   .btn-primary:active {
-    transform: translateY(0);
+    transform: scale(0.97);
   }
 
   .btn-primary:disabled {
@@ -107,15 +116,27 @@
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center rounded-xl border border-white/[0.12] bg-white/[0.06] px-6 py-3 text-sm font-semibold text-gray-200 backdrop-blur-sm transition-all duration-300;
+    @apply inline-flex items-center justify-center rounded-xl border border-white/[0.12] bg-white/[0.06] px-5 py-2.5 sm:px-6 sm:py-3 text-sm font-semibold text-gray-200 backdrop-blur-sm transition-all duration-300;
   }
 
   .btn-secondary:hover {
     @apply border-white/[0.2] bg-white/[0.1] text-white;
   }
 
+  .btn-secondary:active {
+    transform: scale(0.97);
+  }
+
   .input-glass {
     @apply w-full rounded-xl border border-white/[0.1] bg-white/[0.05] px-4 py-3 text-sm text-white placeholder-gray-500 backdrop-blur-sm transition-all duration-300;
+    /* Prevent iOS zoom on focus for inputs < 16px */
+    font-size: 16px;
+  }
+
+  @media (min-width: 640px) {
+    .input-glass {
+      font-size: 14px;
+    }
   }
 
   .input-glass:focus {
@@ -140,6 +161,16 @@
     content: '';
     @apply absolute bottom-0 left-1/2 h-[2px] w-4/5 -translate-x-1/2 rounded-full;
     background: linear-gradient(90deg, transparent, #06d6dd, transparent);
+  }
+
+  /* Mobile bottom navigation */
+  .mobile-bottom-nav {
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
+  }
+
+  .mobile-bottom-nav a {
+    position: relative;
+    min-height: 48px; /* Minimum touch target per WCAG */
   }
 
   .typing-indicator {
@@ -206,4 +237,19 @@
     radial-gradient(ellipse 50% 40% at 20% 0%, rgba(6, 214, 221, 0.06), transparent),
     radial-gradient(ellipse 50% 40% at 80% 0%, rgba(168, 85, 247, 0.04), transparent),
     radial-gradient(ellipse 40% 30% at 50% 100%, rgba(59, 130, 246, 0.03), transparent);
+}
+
+/* ── Mobile-specific adjustments ── */
+
+/* Add bottom padding on non-fullscreen pages to account for bottom nav */
+@media (max-width: 639px) {
+  /* Prevent iOS zoom on textarea/select/input focus */
+  textarea, select, input[type="text"], input[type="search"], input[type="email"], input[type="password"] {
+    font-size: 16px !important;
+  }
+
+  /* Bigger scrollbar touch area on mobile */
+  *::-webkit-scrollbar {
+    width: 3px;
+  }
 }

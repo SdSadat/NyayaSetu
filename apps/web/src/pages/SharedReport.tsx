@@ -247,7 +247,7 @@ export default function SharedReport() {
   const { analysis, caseTitle, sharedAt } = state;
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-6">
+    <div className="mx-auto max-w-5xl px-3 sm:px-4 py-4 sm:py-6 pb-20 sm:pb-6">
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
@@ -265,8 +265,8 @@ export default function SharedReport() {
       </div>
 
       {/* Tab bar */}
-      <div className="sticky top-0 z-20 pb-0 pt-2 -mx-4 px-4">
-        <div className="flex gap-0.5 overflow-x-auto rounded-2xl border border-white/[0.08] bg-[rgba(3,7,18,0.82)] p-1.5 backdrop-blur-xl no-scrollbar">
+      <div className="sticky top-0 z-20 pb-0 pt-2 -mx-3 sm:-mx-4 px-2 sm:px-4">
+        <div className="flex gap-0.5 overflow-x-auto rounded-2xl border border-white/[0.08] bg-[rgba(3,7,18,0.82)] p-1 sm:p-1.5 backdrop-blur-xl no-scrollbar">
           {TABS.map(tab => {
             const count = tab.count?.(analysis);
             const isActive = activeTab === tab.id;
@@ -274,13 +274,13 @@ export default function SharedReport() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-medium transition-all duration-200 ${
+                className={`flex shrink-0 items-center gap-1 sm:gap-1.5 rounded-xl px-2.5 sm:px-3 py-2 text-[11px] sm:text-xs font-medium transition-all duration-200 active:scale-95 ${
                   isActive
                     ? 'bg-neon-purple/20 text-neon-purple shadow-[0_0_12px_rgba(168,85,247,0.25)]'
                     : 'text-gray-500 hover:bg-white/[0.04] hover:text-gray-300'
                 }`}
               >
-                <span className={isActive ? 'text-neon-purple' : 'text-gray-600'}>
+                <span className={`hidden sm:inline ${isActive ? 'text-neon-purple' : 'text-gray-600'}`}>
                   <Ico d={tab.svgPath} />
                 </span>
                 <span>{tab.label}</span>

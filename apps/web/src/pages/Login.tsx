@@ -38,7 +38,7 @@ export default function Login() {
   const isLogin = mode === 'login';
 
   return (
-    <main className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-12">
+    <main className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-8 sm:py-12 pb-24 sm:pb-12">
       {/* Background glow */}
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute left-1/2 top-1/3 h-[400px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-hero-glow opacity-40 blur-3xl" />
