@@ -6,7 +6,7 @@ import {
   type KeyboardEvent,
 } from 'react';
 import type { SahayakResponse, DocumentVerifyResult } from '@nyayasetu/shared-types';
-import { queryLaw, verifyDocument } from '@/lib/api';
+import { queryLaw, verifyDocument, type ConversationTurnParam } from '@/lib/api';
 import LegalResponseCard from '@/components/LegalResponse';
 import RefusalCard from '@/components/RefusalCard';
 import AIProgressLoader from '@/components/AIProgressLoader';
@@ -130,14 +130,27 @@ function UserBubble({ msg }: { msg: ChatMessage }) {
 }
 
 function ResponseBubble({ msg }: { msg: ChatMessage }) {
+  const rewritten = msg.response?.type === 'success' ? msg.response.rewrittenQuery : undefined;
+  const isFollowUp = msg.response?.type === 'success' ? msg.response.isFollowUp : false;
+
   return (
     <div className="flex items-start gap-3">
       <SahayakAvatar size={32} />
       <div className="min-w-0 flex-1 space-y-1">
         <div className="flex items-center gap-2">
           <span className="text-xs font-semibold text-neon-cyan">Sahayak</span>
+          {isFollowUp && (
+            <span className="rounded-full bg-neon-purple/10 border border-neon-purple/20 px-1.5 py-0.5 text-[9px] text-neon-purple">
+              FOLLOW-UP
+            </span>
+          )}
           <span className="text-[10px] text-gray-600">{formatTime(msg.timestamp)}</span>
         </div>
+        {rewritten && (
+          <p className="text-[11px] text-gray-500 italic">
+            Interpreted as: &ldquo;{rewritten}&rdquo;
+          </p>
+        )}
         {msg.response?.type === 'success' ? (
           <LegalResponseCard response={msg.response} />
         ) : msg.response?.type === 'refusal' ? (
@@ -293,6 +306,41 @@ export default function Ask() {
     }
   }
 
+  /**
+   * Build conversation history from recent chat messages to send with the query.
+   * Extracts the last 4 user/assistant exchanges (8 messages max).
+   */
+  function buildConversationHistory(currentMessages: ChatMessage[]): ConversationTurnParam[] {
+    const turns: ConversationTurnParam[] = [];
+
+    // Only include chat messages (user queries and successful responses)
+    const relevant = currentMessages.filter(
+      (m) => m.type === 'user' || (m.type === 'response' && m.response?.type === 'success'),
+    );
+
+    // Take the last 8 relevant messages (4 exchanges)
+    const recent = relevant.slice(-8);
+
+    for (const msg of recent) {
+      if (msg.type === 'user' && msg.text) {
+        turns.push({
+          role: 'user',
+          content: msg.text,
+          timestamp: new Date(msg.timestamp).toISOString(),
+        });
+      } else if (msg.type === 'response' && msg.response?.type === 'success') {
+        turns.push({
+          role: 'assistant',
+          content: msg.response.legalBasis,
+          timestamp: new Date(msg.timestamp).toISOString(),
+          sources: msg.response.citations?.map((c) => `${c.section} ${c.act}`) ?? [],
+        });
+      }
+    }
+
+    return turns;
+  }
+
   const submitQuery = useCallback(async () => {
     const trimmed = text.trim();
     if (!trimmed || loading) return;
@@ -307,6 +355,9 @@ export default function Ask() {
       timestamp: Date.now(),
     };
 
+    // Build conversation history BEFORE adding the new user message
+    const conversationHistory = buildConversationHistory(messages);
+
     setMessages((prev) => [...prev, userMsg]);
     resetTextarea();
     setLoading(true);
@@ -315,6 +366,7 @@ export default function Ask() {
       const response = await queryLaw({
         text: trimmed,
         state: state || undefined,
+        conversationHistory: conversationHistory.length > 0 ? conversationHistory : undefined,
       });
 
       const responseMsg: ChatMessage = {
@@ -337,7 +389,7 @@ export default function Ask() {
     } finally {
       setLoading(false);
     }
-  }, [text, state, loading]);
+  }, [text, state, loading, messages]);
 
   function clearChat() {
     setMessages([]);
