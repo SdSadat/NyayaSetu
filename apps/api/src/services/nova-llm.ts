@@ -15,7 +15,7 @@ import {
 } from '@aws-sdk/client-bedrock-runtime';
 
 import { config } from '../config/index.js';
-import type { LLMProvider } from './llm-provider.js';
+import type { LLMProvider, LLMMessage } from './llm-provider.js';
 
 // ---------------------------------------------------------------------------
 // Nova request/response types (Bedrock InvokeModel native format)
@@ -134,6 +134,49 @@ export class NovaLLM implements LLMProvider {
     const parts = responseBody.output?.message?.content;
     if (!parts || parts.length === 0) {
       throw new Error('Nova returned no content in response.');
+    }
+
+    return parts.map((p) => p.text).join('');
+  }
+
+  /**
+   * Generate a text response from a multi-turn conversation.
+   * Maps LLMMessage[] to Nova's native message format.
+   */
+  async generateWithMessages(
+    systemPrompt: string,
+    messages: LLMMessage[],
+  ): Promise<string> {
+    const novaMessages: NovaMessage[] = messages.map((m) => ({
+      role: m.role,
+      content: [{ text: m.content }],
+    }));
+
+    const body: NovaRequest = {
+      system: [{ text: systemPrompt }],
+      messages: novaMessages,
+      inferenceConfig: {
+        maxTokens: 4096,
+        temperature: 0.3,
+        topP: 0.9,
+      },
+    };
+
+    const command = new InvokeModelCommand({
+      modelId: this.modelId,
+      contentType: 'application/json',
+      accept: 'application/json',
+      body: JSON.stringify(body),
+    });
+
+    const response = await this.client.send(command);
+    const responseBody = JSON.parse(
+      new TextDecoder().decode(response.body),
+    ) as NovaResponse;
+
+    const parts = responseBody.output?.message?.content;
+    if (!parts || parts.length === 0) {
+      throw new Error('Nova returned no content in multi-turn response.');
     }
 
     return parts.map((p) => p.text).join('');

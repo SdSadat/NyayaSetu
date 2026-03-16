@@ -4,12 +4,13 @@
 //
 // Pipeline steps (in order):
 //   1. Normalize    — Clean and normalize the input text.
-//   2. Extract      — Identify legal entities (actor, action, jurisdiction hints).
-//   3. Resolve      — Determine the applicable jurisdiction (central or state).
-//   4. Retrieve     — Fetch relevant legal source chunks from ChromaDB.
-//   5. Generate     — Call Amazon Nova LLM with injected sources and safety prompt.
-//   6. Verify       — Check that the generated response only cites provided sources.
-//   7. Guardrails   — Apply final safety checks (certainty, advisory language).
+//   2. Context      — Classify intent (follow-up vs new topic), rewrite if needed.
+//   3. Extract      — Identify legal entities (actor, action, jurisdiction hints).
+//   4. Resolve      — Determine the applicable jurisdiction (central or state).
+//   5. Retrieve     — Fetch relevant legal source chunks from ChromaDB.
+//   6. Generate     — Call Amazon Nova LLM with injected sources and safety prompt.
+//   7. Verify       — Check that the generated response only cites provided sources.
+//   8. Guardrails   — Apply final safety checks (certainty, advisory language).
 //
 // SAFETY INVARIANT: If ANY step fails or produces uncertain results, the pipeline
 // returns a structured RefusalResponse.
@@ -23,6 +24,8 @@ import type {
   Citation,
   VerificationResult,
   SupportedState,
+  ConversationTurn,
+  ConversationIntent,
 } from '@nyayasetu/shared-types';
 
 import {
@@ -40,6 +43,12 @@ import {
 import { config } from '../config/index.js';
 import { getRetriever } from './vector-store.js';
 import { generateLegalResponse } from './response-generator.js';
+import {
+  classifyIntent,
+  rewriteQuery,
+  sanitizeHistory,
+} from './conversation/index.js';
+import { NovaLLM } from './nova-llm.js';
 
 // ---------------------------------------------------------------------------
 // Pipeline input type
@@ -52,6 +61,8 @@ export interface QueryInput {
   state?: SupportedState;
   /** Language preference. */
   language?: 'en' | 'hi';
+  /** Conversation history for multi-turn context. */
+  conversationHistory?: ConversationTurn[];
 }
 
 // ---------------------------------------------------------------------------
@@ -66,7 +77,79 @@ function normalizeQuery(text: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// Step 2: Extract Entities
+// Step 2: Conversation Context
+// ---------------------------------------------------------------------------
+
+/** Singleton LLM for lightweight operations (rewriting). */
+let _rewriteLlm: NovaLLM | null = null;
+function getRewriteLLM(): NovaLLM {
+  if (!_rewriteLlm) _rewriteLlm = new NovaLLM();
+  return _rewriteLlm;
+}
+
+interface ConversationContext {
+  /** The query to use for entity extraction and retrieval. */
+  queryForRetrieval: string;
+  /** Classified intent. */
+  intent: ConversationIntent;
+  /** Whether the query was rewritten. */
+  wasRewritten: boolean;
+  /** Sanitized history to pass to the response generator. */
+  history: ConversationTurn[];
+}
+
+async function resolveConversationContext(
+  normalizedText: string,
+  rawHistory: ConversationTurn[] | undefined,
+): Promise<ConversationContext> {
+  const history = sanitizeHistory(rawHistory);
+
+  // No history → new topic, use query as-is
+  if (history.length === 0) {
+    return {
+      queryForRetrieval: normalizedText,
+      intent: { type: 'new-topic', confidence: 1.0 },
+      wasRewritten: false,
+      history: [],
+    };
+  }
+
+  // Classify intent
+  const intent = classifyIntent(normalizedText, history);
+
+  // If follow-up or clarification, rewrite the query for better retrieval
+  if (intent.type === 'follow-up' || intent.type === 'clarification') {
+    const { rewritten, wasRewritten } = await rewriteQuery(
+      normalizedText,
+      history,
+      getRewriteLLM(),
+    );
+
+    console.log(
+      `[query-pipeline] Intent: ${intent.type} (${(intent.confidence * 100).toFixed(0)}%)` +
+      (wasRewritten ? ` | Rewritten: "${rewritten}"` : ''),
+    );
+
+    return {
+      queryForRetrieval: rewritten,
+      intent,
+      wasRewritten,
+      history,
+    };
+  }
+
+  console.log(`[query-pipeline] Intent: new-topic (${(intent.confidence * 100).toFixed(0)}%)`);
+
+  return {
+    queryForRetrieval: normalizedText,
+    intent,
+    wasRewritten: false,
+    history,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Step 3: Extract Entities
 // ---------------------------------------------------------------------------
 
 /** Test if `pattern` matches as a whole word in `text`. */
@@ -121,7 +204,7 @@ function extractEntities(
 }
 
 // ---------------------------------------------------------------------------
-// Step 3: Resolve Jurisdiction
+// Step 4: Resolve Jurisdiction
 // ---------------------------------------------------------------------------
 
 function resolveQueryJurisdiction(
@@ -131,7 +214,7 @@ function resolveQueryJurisdiction(
 }
 
 // ---------------------------------------------------------------------------
-// Step 4: Retrieve Sources
+// Step 5: Retrieve Sources
 // ---------------------------------------------------------------------------
 
 interface RetrievalOutput {
@@ -152,19 +235,6 @@ async function retrieveSources(
     console.error(`[query-pipeline] Retrieval failed: ${message}`);
     return { chunks: [], scores: [] };
   }
-}
-
-// ---------------------------------------------------------------------------
-// Step 5: Generate Response
-// ---------------------------------------------------------------------------
-
-async function generateResponse(
-  normalizedText: string,
-  entities: ExtractedEntities,
-  jurisdiction: Jurisdiction,
-  sources: LegalChunk[],
-): Promise<string | null> {
-  return generateLegalResponse(normalizedText, entities, jurisdiction, sources);
 }
 
 // ---------------------------------------------------------------------------
@@ -226,38 +296,51 @@ function buildCitations(sources: LegalChunk[]): Citation[] {
 // ---------------------------------------------------------------------------
 
 export async function processQuery(input: QueryInput): Promise<SahayakResponse> {
+  // Step 1: Normalize
   const normalizedText = normalizeQuery(input.text);
 
-  const entities = extractEntities(normalizedText, input.state);
+  // Step 2: Conversation context (classify intent, rewrite if follow-up)
+  const ctx = await resolveConversationContext(
+    normalizedText,
+    input.conversationHistory,
+  );
 
+  // Step 3: Extract entities (from the query used for retrieval)
+  const entities = extractEntities(ctx.queryForRetrieval, input.state);
+
+  // Step 4: Resolve jurisdiction
   const jurisdiction = resolveQueryJurisdiction(entities);
 
   if (!jurisdiction) {
     return refuseUnknownJurisdiction();
   }
 
-  const retrieval = await retrieveSources(normalizedText, jurisdiction);
+  // Step 5: Retrieve sources
+  const retrieval = await retrieveSources(ctx.queryForRetrieval, jurisdiction);
 
   if (retrieval.chunks.length === 0 && config.safety.refuseOnNoSource) {
     return refuseNoSources();
   }
 
-  const rawResponse = await generateResponse(
-    normalizedText,
+  // Step 6: Generate response (with conversation history for multi-turn)
+  const rawResponse = await generateLegalResponse(
+    ctx.queryForRetrieval,
     entities,
     jurisdiction,
     retrieval.chunks,
+    ctx.history,
   );
 
   if (!rawResponse) {
     return refuseNoSources();
   }
 
+  // Step 7: Verify
   verifyResponse(rawResponse, retrieval.chunks);
 
+  // Step 8: Build citations + guardrails
   const citations = buildCitations(retrieval.chunks);
 
-  // Calculate certainty from retrieval similarity scores (0-1 range)
   const certaintyScore: number = retrieval.scores.length > 0
     ? retrieval.scores.reduce((sum, s) => sum + s, 0) / retrieval.scores.length
     : 0;
@@ -270,6 +353,14 @@ export async function processQuery(input: QueryInput): Promise<SahayakResponse> 
   };
 
   const finalResponse = applyGuardrails(guardrailInput, config.safety);
+
+  // Attach conversation metadata to successful responses
+  if (finalResponse.type === 'success') {
+    finalResponse.isFollowUp = ctx.intent.type !== 'new-topic';
+    if (ctx.wasRewritten) {
+      finalResponse.rewrittenQuery = ctx.queryForRetrieval;
+    }
+  }
 
   return finalResponse;
 }
