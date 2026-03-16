@@ -72,21 +72,32 @@ export function buildConversationMessages(
   history: ConversationTurn[],
   currentPrompt: string,
 ): LLMMessage[] {
-  const messages: LLMMessage[] = [];
-
-  // Add history turns as alternating user/assistant messages
+  // Build raw message list from history
+  const raw: LLMMessage[] = [];
   for (const turn of history) {
-    messages.push({
-      role: turn.role,
-      content: turn.content,
-    });
+    raw.push({ role: turn.role, content: turn.content });
   }
+  // Append the current query as the final user message
+  raw.push({ role: 'user', content: currentPrompt });
 
-  // Add the current query with full context (sources, entities, etc.)
-  messages.push({
-    role: 'user',
-    content: currentPrompt,
-  });
+  // Nova/Bedrock requires:
+  //   1. First message must be "user"
+  //   2. Messages must alternate user/assistant (no consecutive same-role)
+  //
+  // Fix: skip leading assistant messages, merge consecutive same-role messages.
+  const messages: LLMMessage[] = [];
+  for (const msg of raw) {
+    // Skip leading assistant messages
+    if (messages.length === 0 && msg.role === 'assistant') continue;
+
+    // Merge consecutive same-role messages
+    const last = messages[messages.length - 1];
+    if (last && last.role === msg.role) {
+      last.content += '\n\n' + msg.content;
+    } else {
+      messages.push({ role: msg.role, content: msg.content });
+    }
+  }
 
   return messages;
 }

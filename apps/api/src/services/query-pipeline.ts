@@ -66,6 +66,80 @@ export interface QueryInput {
 }
 
 // ---------------------------------------------------------------------------
+// Step 0: Query Intent Gate (lightweight LLM classification)
+// ---------------------------------------------------------------------------
+
+type QueryCategory = 'legal' | 'greeting' | 'off-topic';
+
+const GATE_SYSTEM_PROMPT = `You are a query classifier for an Indian legal information system called NyayaSetu Sahayak.
+
+Classify the user's message into exactly ONE category:
+
+- "legal" — Any question or scenario related to law, rights, police, courts, contracts, property, employment, government, regulations, legal documents, FIRs, arrests, fines, complaints, or any situation where the user might need legal information. Be generous — if it COULD be a legal question, classify as legal.
+- "greeting" — Hello, hi, thanks, bye, who are you, what can you do, how are you, ok/got it, or similar conversational messages.
+- "off-topic" — Clearly non-legal questions like cooking recipes, sports scores, math homework, coding help, weather, entertainment, etc.
+
+Respond with ONLY the category word. Nothing else.`;
+
+async function classifyQueryCategory(
+  text: string,
+  llm: NovaLLM,
+): Promise<QueryCategory> {
+  try {
+    const result = await llm.generate(GATE_SYSTEM_PROMPT, text);
+    const category = result.trim().toLowerCase().replace(/[^a-z-]/g, '');
+    if (category === 'legal' || category === 'greeting' || category === 'off-topic') {
+      return category;
+    }
+    // If the LLM returned something unexpected, default to legal (safer)
+    return 'legal';
+  } catch (err) {
+    console.warn('[query-pipeline] Gate classification failed, defaulting to legal:', err);
+    return 'legal';
+  }
+}
+
+function buildGateResponse(category: 'greeting' | 'off-topic'): SahayakResponse {
+  if (category === 'greeting') {
+    return {
+      type: 'success',
+      legalBasis:
+        `Namaste! I'm NyayaSetu Sahayak, your Indian legal information assistant.\n\n` +
+        `I can help you understand Indian law — just describe your situation or ask a legal question. For example:\n\n` +
+        `• "Can police search my phone without a warrant?"\n` +
+        `• "What are my rights if I get arrested?"\n` +
+        `• "My landlord is demanding 6 months advance rent — what does the law say?"\n\n` +
+        `I provide legal **information** with cited sources — not legal advice. How can I help you today?`,
+      citations: [],
+      safetyNote: { text: '', isDeescalation: false },
+      certaintyScore: 1,
+      certaintyLevel: 'high',
+      jurisdiction: { scope: 'central' },
+      disclaimer: '',
+    };
+  }
+
+  // off-topic
+  return {
+    type: 'success',
+    legalBasis:
+      `I appreciate your question, but I'm specifically designed to help with **Indian legal information** only.\n\n` +
+      `I can help with questions about:\n` +
+      `• Your rights (during arrest, as a tenant, as a consumer, at work)\n` +
+      `• Legal procedures (filing FIRs, RTI applications, court processes)\n` +
+      `• Understanding laws and Acts that apply to your situation\n` +
+      `• Verifying legal documents for authenticity\n\n` +
+      `Try describing a legal situation you're facing, and I'll find the relevant law for you.`,
+    citations: [],
+    safetyNote: { text: '', isDeescalation: false },
+    certaintyScore: 1,
+    certaintyLevel: 'high',
+    jurisdiction: { scope: 'central' },
+    disclaimer: '',
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Step 1: Normalize
 // ---------------------------------------------------------------------------
 
@@ -80,11 +154,11 @@ function normalizeQuery(text: string): string {
 // Step 2: Conversation Context
 // ---------------------------------------------------------------------------
 
-/** Singleton LLM for lightweight operations (rewriting). */
-let _rewriteLlm: NovaLLM | null = null;
-function getRewriteLLM(): NovaLLM {
-  if (!_rewriteLlm) _rewriteLlm = new NovaLLM();
-  return _rewriteLlm;
+/** Singleton LLM for lightweight operations (classification, rewriting). */
+let _utilityLlm: NovaLLM | null = null;
+function getUtilityLLM(): NovaLLM {
+  if (!_utilityLlm) _utilityLlm = new NovaLLM();
+  return _utilityLlm;
 }
 
 interface ConversationContext {
@@ -122,7 +196,7 @@ async function resolveConversationContext(
     const { rewritten, wasRewritten } = await rewriteQuery(
       normalizedText,
       history,
-      getRewriteLLM(),
+      getUtilityLLM(),
     );
 
     console.log(
@@ -296,6 +370,13 @@ function buildCitations(sources: LegalChunk[]): Citation[] {
 // ---------------------------------------------------------------------------
 
 export async function processQuery(input: QueryInput): Promise<SahayakResponse> {
+  // Step 0: Classify query intent (legal / greeting / off-topic)
+  const category = await classifyQueryCategory(input.text, getUtilityLLM());
+  if (category !== 'legal') {
+    console.log(`[query-pipeline] Query classified as "${category}", skipping legal pipeline`);
+    return buildGateResponse(category);
+  }
+
   // Step 1: Normalize
   const normalizedText = normalizeQuery(input.text);
 
